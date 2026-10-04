@@ -130,6 +130,9 @@ func _process(delta: float) -> void:
 		return
 	_out = _pump(_pipe, _out, _on_line)
 	_err = _pump(_stderr, _err, _on_stderr_line)
+	if _pid == 0:
+		# An answer read just now let its caller finish and stop the daemon.
+		return
 	_exit_poll += delta
 	if _exit_poll >= 1.0:
 		_exit_poll = 0.0
