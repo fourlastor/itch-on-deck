@@ -9,6 +9,7 @@ const RUNS_SHOWN := 4
 
 var _section := 0
 var _busy := false
+var _app_in_steam := false
 
 @onready var _hints: HintBar = %HintBar
 @onready var _sections: Array[Node] = %Sections.get_children()
@@ -93,8 +94,9 @@ func _wire_focus() -> void:
 func _show_values() -> void:
 	_sections[0].value = Schedule.label(Config.schedule())
 	_sections[2].value = Bandwidth.label(int(Config.get_value("bandwidth_kbps", 0)))
+	_app_in_steam = AppSteamRow.show(%AddApp, "Not in the Steam library")
 	var app_parts: PackedStringArray = ["Updates itself" if SelfUpdate.enabled() else "Does not update itself"]
-	app_parts.append("in Steam" if bool(Config.get_value("app_in_steam", false)) else "not in Steam")
+	app_parts.append("in Steam" if _app_in_steam else "not in Steam")
 	_sections[3].value = ", ".join(app_parts)
 	_sections[4].value = "v" + ButlerInstall.VERSION
 	_sections[5].value = Session.user_name()
@@ -104,14 +106,14 @@ func _show_values() -> void:
 		%CheckAll.state = "%s · checked %s" % ["No update known" if known == 0 else ("1 update known" if known == 1 else "%d updates known" % known), Format.moment(checked)]
 	else:
 		%CheckAll.state = "Not checked yet"
-	%AddApp.state = "In the Steam library" if bool(Config.get_value("app_in_steam", false)) else "Not in the Steam library"
-	var app_update := Library.update_for_cave(SelfUpdate.cave_id()) if SelfUpdate.is_managed() else {}
-	if not SelfUpdate.is_managed():
-		%CheckApp.state = "butler does not manage this folder yet"
-	elif app_update.is_empty():
-		%CheckApp.state = "No newer version known"
+	if not SelfUpdate.is_a_build():
+		%CheckApp.state = "Only a published build updates itself"
+	elif SelfUpdate.newest_version == "":
+		%CheckApp.state = "Not checked yet"
+	elif SelfUpdate.has_update():
+		%CheckApp.state = "Version %s is out" % SelfUpdate.newest_version
 	else:
-		%CheckApp.state = GameText.update_summary(app_update)
+		%CheckApp.state = "This is the newest version"
 	var next := Schedule.next_run() if Butler.demo == null else 0
 	%Header.set_note(("Next update run %s" % Format.moment(next)) if next > 0 else "")
 
@@ -160,36 +162,30 @@ func _on_schedule_changed(index: int) -> void:
 
 
 func _on_self_update_changed(index: int) -> void:
-	if index == 1 and Butler.demo == null:
-		# butler has to know the app's folder before it can update it.
-		var problem: String = await SelfUpdate.adopt()
-		if problem != "":
-			%SelfChoice.select(0)
-			Config.set_value("self_update", false)
-			_say(problem)
-			_show_values()
-			return
 	Config.set_value("self_update", index == 1)
 	_apply_schedule()
+	if index == 1 and not SelfUpdate.is_a_build():
+		_say("This copy runs from the project's sources, so there is nothing to update. A published build updates itself.")
 
 
 func _on_check_app() -> void:
 	if _busy or Butler.demo != null:
 		return
+	if not SelfUpdate.is_a_build():
+		_say("This copy runs from the project's sources, so there is nothing to update.")
+		return
 	_busy = true
 	%CheckApp.state = "Asking itch.io"
-	var problem: String = await SelfUpdate.adopt()
-	if problem == "":
-		problem = await Library.check_updates([SelfUpdate.cave_id()])
+	var newest: Dictionary = await SelfUpdate.look()
 	_busy = false
-	if problem != "":
-		_say(problem)
-	elif Library.update_for_cave(SelfUpdate.cave_id()).is_empty():
+	if newest.error != "":
+		_say("The app's page could not be read: %s" % newest.error)
+	elif not SelfUpdate.has_update():
 		_say("This is the newest version.")
 	elif SelfUpdate.enabled():
-		_say("A newer version is known. The update run applies it the next time it finds the app closed.")
+		_say("Version %s is out. The update run puts it in the next time it finds the app closed." % newest.version)
 	else:
-		_say("A newer version is known. Switch on \"Update itch on Deck itself\" to have it applied while the app is closed.")
+		_say("Version %s is out. Switch on \"Update itch on Deck itself\" to have it put in while the app is closed." % newest.version)
 	_show_values()
 
 
@@ -247,8 +243,19 @@ func _on_location_pressed(location: Dictionary, games: int) -> void:
 
 
 func _on_add_app() -> void:
-	_say(Steam.put_app_in_steam(Nav))
+	if _app_in_steam:
+		_say(Steam.APP_THERE)
+		return
+	var said: String = await Steam.put_app_in_steam(Nav)
+	if said != "":
+		_say(said)
 	_show_values()
+	# Steam writes a new entry down a moment after it is asked; then the row
+	# can say that the app is there.
+	await get_tree().create_timer(1.5).timeout
+	if is_inside_tree():
+		_show_values()
+		_show_hints()
 
 
 func _on_check_butler() -> void:
@@ -308,6 +315,8 @@ func _show_hints() -> void:
 	var inside: bool = focused != null and %Panes.is_ancestor_of(focused)
 	if focused is Segmented:
 		hints.append([Glyph.Kind.DPAD, "Change"])
+	elif focused == %AddApp and _app_in_steam:
+		pass
 	elif focused is ActionRow:
 		hints.append([Glyph.Kind.A, focused.title])
 	elif focused != null and focused.get_parent() == %LocationList:

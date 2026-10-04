@@ -229,6 +229,8 @@ func check_updates(cave_ids: Array = []) -> String:
 			updates.erase(id)
 	for update: Dictionary in res.result.get("updates", []):
 		updates[str(update.get("caveId", ""))] = update
+	# The app is not updated through a cave (see SelfUpdate).
+	updates.erase(SelfUpdate.cave_id())
 	last_update_check = int(Time.get_unix_time_from_system())
 	_refresh_states()
 	updates_changed.emit()

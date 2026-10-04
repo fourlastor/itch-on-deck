@@ -441,10 +441,11 @@ the app's current butler and runs `butler launch`, so a butler update does not b
    and whether it works on SteamOS, is undecided.
 6. **Removed SD card.** What butler does with caves whose install location is gone.
 7. **Updating the app itself.** Decided: the app is the page `fourlastor/itch-on-deck`, published
-   by a GitHub Actions workflow, and updates through butler. It hands the folder it runs from
-   to butler (`Install.Adopt`), under a setting of its own, apart from the games' schedule; the
-   update run, which is started from a copy of the app (section 8), applies an update only
-   while the app's window is closed (section 14).
+   by a GitHub Actions workflow, and updates through butler, under a setting of its own, apart
+   from the games' schedule. The update run, which is started from a copy of the app (section
+   8), reads the page's uploads, and when the newest build is another version than the copy
+   has butler install that build into the folder the app is in (`Install.Queue` with `noCave`,
+   then `Install.Perform`), only while the app's window is closed (section 14).
 8. **The name.** "itch on Deck" uses itch.io's name. Fine for a personal tool; check their brand
    rules before publishing it.
 
@@ -499,12 +500,22 @@ Only the part "On a Deck" below was tried on a Deck.
 - **Removing from Steam by editing `shortcuts.vdf`** (way 2 of section 7) while Steam runs, on a
   PC: the running Steam went on showing the two test entries, and after it was restarted they
   were gone. Steam had not written the file again when it exited.
+- **What a running Steam does with its shortcuts file**, tried on a PC with throwaway entries
+  (2026-10-04). An entry Steam is asked to add (way 1) is in `shortcuts.vdf` half a second
+  later, with the ID Steam chose; the ID cannot be worked out from the entry's fields. Steam
+  writes the file again from its own memory every time a shortcut is added through it and
+  every time a shortcut is started, and each time whatever was written into the file behind
+  its back is gone: an entry added by hand (way 2, which is what Lutris and Heroic do) did not
+  survive the next save. So way 2 only holds when Steam is restarted before it saves again,
+  and the app, which itself runs as a shortcut, does not add that way. The same goes for the
+  removal above: it lasts only if Steam restarts before its next save.
 - **Adopting a folder.** `Install.Adopt` makes an existing folder an installed game without
-  downloading anything, and that folder then updates like any other. This is how the app
-  updates itself: it registers the folder above its own as an install location that the lists
-  do not show, and adopts its own folder. butler must be told the exact build the folder
-  holds, so a build carries the commit it was made from, and adopts only when that is the
-  page's newest.
+  downloading anything, and that folder then updates like any other. The app first updated
+  itself this way: it registered the folder above its own as an install location that the
+  lists do not show, and adopted its own folder. It no longer does: adopting reads the game's
+  page, which only works for the account that owns the page (see "The app's own update, for
+  every account" below). A record made this way by an earlier build is left alone and stays
+  out of the lists.
 
 ### Not as the sections above had it
 
@@ -584,6 +595,20 @@ Only the part "On a Deck" below was tried on a Deck.
   location's `downloads` folder, because the run ended before butler deleted it. The update
   run and the app now remove such folders at their start.
 
+- **The app did not find its own entry in Steam's file**, so it added itself again at every
+  press and never wrote its library images, while a game's entry got its images. The app
+  looks for an entry by its program and, for a game, by the cave ID among the launch options.
+  For itself it asked for no launch option, as an empty text, and to Godot no text contains
+  the empty text. It was not seen before the Deck because, run from the project's sources,
+  the app is matched by a launch option (`--path`). Fixed; checked with the exported build
+  against a Steam folder laid out like the Deck's. A second press now says that the app is
+  in Steam already; when the file does not show the entry but this copy was handed to Steam
+  before, the app asks before adding again. The small icon of an entry cannot be set this
+  way: Steam takes none from the shortcut it is handed, and what is written into its file is
+  lost at its next save (see "What a running Steam does with its shortcuts file").
+- **There was no way out of the app with a controller.** B on the first screen (the lists, the
+  sign-in, the fetching of butler) now asks whether to close the app.
+
 ### Looked into for version 1.1
 
 2026-10-04. Why a sign-in through the browser cannot open a collection or search itch.io, and
@@ -624,11 +649,32 @@ read. Nothing of this is built.
   three requests serve the games the account does hold (tried on the account's own project
   with butler's copies made stale), and would make the refetching of lists described under
   Signing in unnecessary.
-- **The app's own update has the same fault.** `Install.Adopt` reads the game's page too. For
-  the account that owns the page the app gets around it through the list of projects; an
-  account that does not own it has no list to fetch, so it cannot hand its folder to butler.
-  The adoption described above has to become an install that names the folder
-  (`Install.Queue` with `noCave`) **(to verify)**, or wait for `game:view`.
+- **The app's own update had the same fault.** `Install.Adopt` reads the game's page too. For
+  the account that owns the page the app got around it through the list of projects; an
+  account that does not own it has no list to fetch, so it could not hand its folder to
+  butler. Making the page public changes nothing: the refusal is about the key, not about who
+  may see the page.
+
+### The app's own update, for every account
+
+2026-10-04, on a PC, with the page's published builds and a scratch copy of the app.
+
+- **How.** The app does not have butler hold its folder as an installed game. It reads the
+  page's uploads (`Fetch.GameUploads`, allowed to every sign-in) and compares the newest
+  build's version with its own, which is the commit the build was made from. When they
+  differ, the update run has butler install that build into the folder the app is in:
+  `Install.Queue` with `noCave`, the folder, a staging folder under the app's cache and the
+  game described by the app, then `Install.Perform`. None of this reads the game's page.
+- **The first update of a copy unpacked by hand** finds no record from butler in the folder,
+  so butler fetches the whole build (28 MiB) and writes its record (`.itch/receipt.json.gz`).
+  Tried: a copy that called itself another version became the newest published build, through
+  the timer's launcher.
+- **Every update after that is a patch.** Tried on the same folder, put back one build:
+  butler's log says "Upgrading from build 2065197 to 2066303", one patch of 215 KiB against a
+  full upload of 28 MiB.
+- **What it no longer needs**: the copy being the page's newest build before the switch can be
+  turned on, and the folder above the app registered as an install location.
+- **(to verify on a Deck, and with an account that does not own the page.)**
 
 ### Still to verify
 
@@ -637,7 +683,6 @@ read. Nothing of this is built.
   without restarting Steam.
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
-- The app's own update on a Deck, with the fix above. For an account that does not own the
-  page it cannot work yet (see "Looked into for version 1.1").
+- The app's own update on a Deck, and with an account that does not own the page.
 - The lists and the update run with no connection, and a download across a sleep.
 - Sign-in with a hand-made API key (the same request the browser sign-in ends with).

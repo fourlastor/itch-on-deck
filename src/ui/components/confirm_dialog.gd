@@ -1,6 +1,7 @@
 extends Control
 ## A question over the screen, with two answers. `closed` carries true for
-## the first answer ("yes") and false for the other, or for B.
+## the first answer ("yes") and false for the other, or for B, which the
+## hint under the answers says in the second answer's words.
 
 signal closed(yes: bool)
 
@@ -8,12 +9,13 @@ signal closed(yes: bool)
 func setup(title: String, body: String, yes_text: String, no_text: String, safe_default: bool) -> void:
 	%Title.text = title
 	%Body.text = body
+	%Body.visible = body != ""
 	%Yes.text = yes_text
 	%No.text = no_text
 	%Yes.pressed.connect(func() -> void: closed.emit(true))
 	%No.pressed.connect(func() -> void: closed.emit(false))
 	$Center/Panel/Column/Hints/Select.setup(Glyph.Kind.A, "Choose")
-	$Center/Panel/Column/Hints/Close.setup(Glyph.Kind.B, "Close")
+	$Center/Panel/Column/Hints/Close.setup(Glyph.Kind.B, no_text)
 	var first: Button = %No if safe_default else %Yes
 	first.grab_focus.call_deferred()
 

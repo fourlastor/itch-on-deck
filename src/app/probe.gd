@@ -203,13 +203,12 @@ static func _uninstall(cave_id: String) -> int:
 	return 1
 
 
-## The app's own update: what this copy is, and whether butler takes its folder.
+## The app's own update: what this copy is, and what the page has.
 static func _self() -> int:
-	await Library.refresh_installed()
 	print("version: %s; a published build: %s; folder: %s" % [SelfUpdate.version(), SelfUpdate.is_a_build(), SelfUpdate.folder()])
-	print("managed by butler: ", SelfUpdate.is_managed())
-	var problem: String = await SelfUpdate.adopt()
-	print("adopt: ", problem if problem != "" else "butler manages this folder")
+	var newest: Dictionary = await SelfUpdate.look()
+	print("the page has: ", newest.version if newest.error == "" else newest.error)
+	print("an update is waiting: ", SelfUpdate.has_update())
 	return 0
 
 

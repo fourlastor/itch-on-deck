@@ -1,16 +1,30 @@
 class_name SelfUpdate
 extends RefCounted
 ## The app updating itself. It is a page on itch.io like any other game, so
-## an update is a butler patch. The folder this copy runs from is handed to
-## butler as it is ("Install.Adopt": nothing is downloaded or moved), and
-## from then on butler updates that folder like any installed game.
+## butler can fetch its builds: the whole build the first time, a patch after
+## that. butler puts a build into the folder the app is in without holding
+## that folder as an installed game ("noCave"). Holding it as one would take
+## a read of the game's page, which itch.io refuses a sign-in through the
+## browser. Reading the page's uploads is allowed to every sign-in, and that
+## is how the app sees that there is a newer build.
 ##
 ## It has its own switch, apart from the games' schedule, and an update is
-## applied by the update run only while the app's window is closed.
+## put in by the update run only while the app's window is closed.
 
-## "Itch on Deck" on itch.io: fourlastor/itch-on-deck.
+## "itch on Deck" on itch.io: fourlastor/itch-on-deck. butler is told what
+## the game is, since it may not read the page.
 const GAME_ID := 5100889
+const GAME := {
+	"id": GAME_ID,
+	"url": "https://fourlastor.itch.io/itch-on-deck",
+	"title": "itch on Deck",
+	"classification": "tool",
+	"type": "default",
+}
 const WINDOW_LOCK := "window.pid"
+
+## The page's newest version as `look` last saw it; "" before the first look.
+static var newest_version := ""
 
 
 static func enabled() -> bool:
@@ -51,14 +65,16 @@ static func is_a_build() -> bool:
 	return not OS.has_feature("editor") and version() != "dev"
 
 
-## True for the cave that is this very copy of the app.
+## True for the installed-game record an earlier version of the app had
+## butler make for the app's own folder. It is no longer used, and it stays
+## out of every list: uninstalling it would delete the app.
 static func is_own_cave(cave: Dictionary) -> bool:
 	if cave.is_empty() or int(cave.get("game", {}).get("id", 0)) != GAME_ID:
 		return false
 	return str(cave.get("installInfo", {}).get("installFolder", "")).trim_suffix("/") == folder().trim_suffix("/")
 
 
-## The cave of this copy, or "" while butler does not know the folder.
+## The ID of that record, or "".
 static func cave_id() -> String:
 	for cave: Dictionary in Library.caves:
 		if is_own_cave(cave):
@@ -66,59 +82,63 @@ static func cave_id() -> String:
 	return ""
 
 
-static func is_managed() -> bool:
-	return cave_id() != ""
+## Asks itch.io for the app's newest build for this machine:
+## { upload, build, version, error }.
+static func look() -> Dictionary:
+	var out := {"upload": {}, "build": {}, "version": "", "error": ""}
+	var res: Dictionary = await Butler.request("Fetch.GameUploads", {"gameId": GAME_ID, "compatible": false, "fresh": true})
+	if Butler.failed(res):
+		out.error = Butler.error_text(res)
+		return out
+	var uploads: Variant = res.result.get("uploads")
+	for upload: Variant in (uploads if uploads is Array else []):
+		if not (upload is Dictionary) or not (upload.get("build") is Dictionary):
+			continue
+		var platforms: Variant = upload.get("platforms")
+		if platforms is Dictionary and platforms.has("linux"):
+			out.upload = upload
+			out.build = upload["build"]
+			out.version = str(upload["build"].get("userVersion", ""))
+			newest_version = out.version
+			return out
+	out.error = "The app's page has no build for this machine."
+	return out
 
 
-## Hands the folder this copy runs from to butler. Returns "" when butler
-## manages it, or why it does not.
-static func adopt() -> String:
-	if not is_a_build():
-		return "This copy runs from the project's sources, so there is nothing for butler to update."
-	if is_managed():
-		return ""
-	var got: Dictionary = await GameOps.uploads(GAME_ID)
-	if got.error != "":
-		return "The app's page could not be read: %s" % got.error
-	if got.uploads.is_empty():
-		return "The app's page has no build for this machine."
-	var upload: Dictionary = got.uploads[0]
-	var build: Dictionary = upload.get("build", {}) if upload.get("build") is Dictionary else {}
-	var newest := str(build.get("userVersion", ""))
-	# butler has to be told exactly which build the folder holds. That is only
-	# known when this copy is the newest one.
-	if newest != version():
-		return "This copy is version %s and the page has %s. Download the newest build once; from then on it updates itself." % [version(), newest if newest != "" else "another one"]
-	var here := folder().trim_suffix("/")
-	var location := await _location_for(here.get_base_dir())
-	if location == "":
-		return "The folder %s could not be registered with butler." % Paths.display(here.get_base_dir())
-	var res: Dictionary = await GameOps.request_for_game(GAME_ID, "Install.Adopt", {
-		"gameId": GAME_ID,
-		"uploadId": int(upload.get("id", 0)),
-		"buildId": int(build.get("id", 0)),
-		"installLocationId": location,
-		"installFolderName": here.get_file(),
+## True when the page was seen to have a version that this copy is not.
+static func has_update() -> bool:
+	return newest_version != "" and newest_version != version()
+
+
+## Has butler put the build `newest` (what `look` returned) into the app's
+## folder. Only the update run does this: nothing may be running from the
+## app's program file. Returns "" or why it did not work.
+static func apply(newest: Dictionary) -> String:
+	var staging := Paths.cache_dir().path_join("self-update")
+	# Every try starts clean: what an earlier one left may be for another build.
+	await _wipe(staging)
+	var queued: Dictionary = await Butler.request("Install.Queue", {
+		"noCave": true,
+		"installFolder": folder(),
+		"stagingFolder": staging,
+		"game": GAME,
+		"upload": newest.upload,
+		"build": newest.build,
 		"profileId": Session.profile_id(),
 	})
-	if Butler.failed(res):
-		return GameOps.explain(res)
-	await Library.refresh_installed()
-	return ""
+	if Butler.failed(queued):
+		return Butler.error_text(queued)
+	var done: Dictionary = await Butler.request("Install.Perform", {
+		"id": str(queued.result.get("id", "")),
+		"stagingFolder": staging,
+	})
+	await _wipe(staging)
+	return Butler.error_text(done) if Butler.failed(done) else ""
 
 
-## The install location that is the parent of the app's folder. One made for
-## this purpose is remembered, so the lists of locations leave it out.
-static func _location_for(parent: String) -> String:
-	for location: Dictionary in await InstallLocations.list():
-		if str(location.get("path", "")).trim_suffix("/") == parent:
-			return str(location.get("id", ""))
-	var res: Dictionary = await Butler.request("Install.Locations.Add", {"path": parent})
-	if Butler.failed(res):
-		return ""
-	var id := str(res.result.get("installLocation", {}).get("id", ""))
-	Config.set_value("self_location_id", id)
-	return id
+static func _wipe(path: String) -> void:
+	if DirAccess.dir_exists_absolute(path):
+		await Butler.request("CleanDownloads.Apply", {"entries": [{"path": path, "size": 0}]})
 
 
 ## The window writes its process ID to a file; the update run reads it.

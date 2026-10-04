@@ -62,9 +62,9 @@ func _load_in_background() -> void:
 	# The projects come first: they are what marks a game as a draft.
 	await Library.load_projects()
 	await Library.load_owned()
-	if SelfUpdate.enabled() and not SelfUpdate.is_managed():
-		await SelfUpdate.adopt()
 	await Library.check_updates()
+	if Butler.demo == null and SelfUpdate.enabled() and SelfUpdate.is_a_build():
+		await SelfUpdate.look()
 	if Butler.demo == null:
 		Schedule.keep_current()
 		await Steam.restore_artwork(Nav)

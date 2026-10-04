@@ -7,6 +7,8 @@ extends Node
 ##     func resume()                 called when the screen above it closed
 ##     func first_focus() -> Control what to focus when it is shown
 ##     func back() -> bool           handles B itself; true when it did
+##
+## B goes back one screen; on the first screen it offers to close the app.
 
 const SCREENS := {
 	"setup": "res://src/ui/screens/setup.tscn",
@@ -86,6 +88,19 @@ func confirm(title: String, body: String, yes_text: String, no_text: String, saf
 	return await _run_dialog(dialog, func() -> void: dialog.setup(title, body, yes_text, no_text, safe_default))
 
 
+## B on the first screen: there is nothing to go back to, so it offers to
+## close the app. In Gaming Mode nothing else on the controller would.
+func ask_quit() -> void:
+	var waiting := Downloads.pending_count()
+	var body := ""
+	if waiting == 1:
+		body = "1 download stops, and goes on the next time the app is open."
+	elif waiting > 1:
+		body = "%d downloads stop, and go on the next time the app is open." % waiting
+	if await confirm("Close itch on Deck?", body, "Close the app", "Stay", false):
+		get_tree().quit()
+
+
 ## Shows a list to pick from; returns the index, or -1 when closed.
 func choose(title: String, body: String, options: Array) -> int:
 	var dialog: Control = load(ChoiceScene).instantiate()
@@ -135,11 +150,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	var current := top_name()
 	if event.is_action_pressed(&"ui_cancel"):
 		var screen := top()
+		get_viewport().set_input_as_handled()
 		if screen.has_method("back") and screen.back():
-			get_viewport().set_input_as_handled()
+			pass
 		elif _stack.size() > 1:
-			get_viewport().set_input_as_handled()
 			pop()
+		else:
+			ask_quit()
 	elif not Session.is_signed_in() or current in ["setup", "sign_in", "running"]:
 		return
 	elif event.is_action_pressed(&"downloads") and current != "downloads":

@@ -121,8 +121,13 @@ static func _text(entry: Dictionary, name: String) -> String:
 	return (value as PackedByteArray).get_string_from_utf8() if value is PackedByteArray else ""
 
 
+## With no `argument` the program alone decides. That has to be said here:
+## to Godot no text contains the empty text, so asking for it would match
+## nothing, which is how the app once failed to find its own entry.
 static func _matches(entry: Dictionary, exe: String, argument: String) -> bool:
-	return _text(entry, "Exe").contains(exe) and _text(entry, "LaunchOptions").contains(argument)
+	if not _text(entry, "Exe").contains(exe):
+		return false
+	return argument == "" or _text(entry, "LaunchOptions").contains(argument)
 
 
 ## The ID as Steam uses it in file names: the stored number, unsigned.

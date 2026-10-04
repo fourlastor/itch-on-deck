@@ -56,33 +56,20 @@ func _run(record: Dictionary) -> int:
 		record["outcome"] = "failed"
 		return 1
 
+	# A record an earlier version made for the app's own folder is not a game.
 	var own_cave := SelfUpdate.cave_id()
-	var games_on := Config.schedule() != "off"
-	var app_on := SelfUpdate.enabled()
 	await Downloads.sweep()
 	Downloads.start()
 	for cave_id: String in Library.updates.keys():
-		var update: Dictionary = Library.updates[cave_id]
-		var is_app := cave_id == own_cave and own_cave != ""
-		# The app and the games have separate switches.
-		if (is_app and not app_on) or (not is_app and not games_on):
+		if Config.schedule() == "off" or (own_cave != "" and cave_id == own_cave):
 			continue
+		var update: Dictionary = Library.updates[cave_id]
 		var title := str(update.get("game", {}).get("title", "A game"))
 		var choices: Array = update.get("choices", [])
 		if choices.size() != 1:
 			record["left"].append({"title": title, "reason": "%d possible uploads" % choices.size()})
 			continue
-		var folder := _folder_of(cave_id)
-		if is_app:
-			if SelfUpdate.runs_from_own_file():
-				# butler cannot write a program file that is running, and this run is
-				# running from it. The timer starts the run from a copy (Schedule).
-				record["skipped"].append({"title": title, "reason": "this run was started from the app's own program file, which cannot replace itself"})
-				continue
-			if SelfUpdate.window_is_open() or Processes.any_under(folder):
-				record["skipped"].append({"title": title, "reason": "the app was open"})
-				continue
-		elif is_running(folder):
+		if is_running(_folder_of(cave_id)):
 			record["skipped"].append({"title": title, "reason": "it was running"})
 			continue
 		print("Updating %s." % title)
@@ -94,12 +81,44 @@ func _run(record: Dictionary) -> int:
 			record["skipped"].append({"title": title, "reason": "the connection went away"})
 		else:
 			record["errors"].append("%s: %s" % [title, problem])
+	# The app and the games have separate switches.
+	if SelfUpdate.enabled() and SelfUpdate.is_a_build():
+		await _update_app(record)
 	if not record["errors"].is_empty():
 		record["outcome"] = "failed"
 		return 1
 	if not record["updated"].is_empty():
 		record["outcome"] = "updated"
 	return 0
+
+
+## The app itself (SelfUpdate): butler puts the page's newest build into the
+## app's folder when this copy is another version.
+func _update_app(record: Dictionary) -> void:
+	var title: String = SelfUpdate.GAME["title"]
+	var newest: Dictionary = await SelfUpdate.look()
+	if newest.error != "":
+		if await _online():
+			record["errors"].append("%s: %s" % [title, newest.error])
+		return
+	if not SelfUpdate.has_update():
+		return
+	if SelfUpdate.runs_from_own_file():
+		# butler cannot write a program file that is running, and this run is
+		# running from it. The timer starts the run from a copy (Schedule).
+		record["skipped"].append({"title": title, "reason": "this run was started from the app's own program file, which cannot replace itself"})
+		return
+	if SelfUpdate.window_is_open() or Processes.any_under(SelfUpdate.folder()):
+		record["skipped"].append({"title": title, "reason": "the app was open"})
+		return
+	print("Updating %s." % title)
+	var problem: String = await SelfUpdate.apply(newest)
+	if problem == "":
+		record["updated"].append({"title": title, "version": str(newest.version)})
+	elif not await _online():
+		record["skipped"].append({"title": title, "reason": "the connection went away"})
+	else:
+		record["errors"].append("%s: %s" % [title, problem])
 
 
 ## True while a game started through butler, or any program out of the

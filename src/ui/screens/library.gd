@@ -308,6 +308,8 @@ func _show_hints() -> void:
 		hints.append([Glyph.Kind.B, "Collections"])
 	elif _filter() != "":
 		hints.append([Glyph.Kind.B, "Clear the filter"])
+	else:
+		hints.append([Glyph.Kind.B, "Close the app"])
 	_hints.set_hints(hints, _position_text())
 
 

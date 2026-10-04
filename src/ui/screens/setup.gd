@@ -10,7 +10,7 @@ signal finished
 func _ready() -> void:
 	_installer.progress.connect(_on_progress)
 	%Retry.pressed.connect(_run)
-	%HintBar.set_hints([], "butler %s" % ButlerInstall.VERSION)
+	%HintBar.set_hints([[Glyph.Kind.B, "Close the app"]], "butler %s" % ButlerInstall.VERSION)
 
 
 func open(args: Dictionary) -> void:
@@ -24,15 +24,16 @@ func first_focus() -> Control:
 	return %Retry if %Retry.visible else null
 
 
+## B offers to close the app: nothing here can be gone back to.
 func back() -> bool:
-	return true
+	return false
 
 
 func _run() -> void:
 	%Retry.visible = false
 	%Title.text = "Getting butler"
 	%Status.text = "Asking broth.itch.zone for butler %s." % ButlerInstall.VERSION
-	%HintBar.set_hints([], "butler %s" % ButlerInstall.VERSION)
+	%HintBar.set_hints([[Glyph.Kind.B, "Close the app"]], "butler %s" % ButlerInstall.VERSION)
 	var ok: bool = await _installer.install()
 	if ok:
 		%Bar.value = 1.0
@@ -47,7 +48,7 @@ func _fail(reason: String) -> void:
 	%Status.text = "%s Nothing was left half-installed." % reason
 	%Retry.visible = true
 	%Retry.grab_focus.call_deferred()
-	%HintBar.set_hints([[Glyph.Kind.A, "Try again"]], "butler %s" % ButlerInstall.VERSION)
+	%HintBar.set_hints([[Glyph.Kind.A, "Try again"], [Glyph.Kind.B, "Close the app"]], "butler %s" % ButlerInstall.VERSION)
 
 
 func _on_progress(text: String, fraction: float) -> void:

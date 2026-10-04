@@ -10,6 +10,7 @@ extends Control
 ## in Steam is here too: the rest can then be done in Gaming Mode.
 
 var _busy := false
+var _app_in_steam := false
 
 @onready var _oauth: OAuthLogin = %OAuth
 @onready var _hints: HintBar = %HintBar
@@ -48,8 +49,8 @@ func back() -> bool:
 		_say("Stopped waiting for the browser.")
 		_show_rows()
 		return true
-	# There is nowhere to go back to from here.
-	return true
+	# There is nowhere to go back to from here: B offers to close the app.
+	return false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -71,12 +72,23 @@ func _show_rows() -> void:
 
 
 func _show_steam_row() -> void:
-	%AddApp.state = "In the Steam library" if Steam.app_is_in_steam() else "To open it in Gaming Mode"
+	_app_in_steam = AppSteamRow.show(%AddApp, "To open it in Gaming Mode")
 
 
 func _on_add_app() -> void:
-	_say(Steam.put_app_in_steam(Nav))
+	if _app_in_steam:
+		_say(Steam.APP_THERE)
+		return
+	var said: String = await Steam.put_app_in_steam(Nav)
+	if said != "":
+		_say(said)
 	_show_steam_row()
+	# Steam writes a new entry down a moment after it is asked; then the row
+	# can say that the app is there.
+	await get_tree().create_timer(1.5).timeout
+	if is_inside_tree():
+		_show_steam_row()
+		_show_hints()
 
 
 func _on_browser() -> void:
@@ -154,8 +166,9 @@ func _show_hints() -> void:
 	var hints: Array = []
 	if focused == %Key:
 		hints.append([Glyph.Kind.A, "Type the key"])
+	elif focused == %AddApp and _app_in_steam:
+		pass
 	elif focused is ActionRow:
 		hints.append([Glyph.Kind.A, focused.title])
-	if _oauth.is_waiting():
-		hints.append([Glyph.Kind.B, "Stop waiting"])
+	hints.append([Glyph.Kind.B, "Stop waiting" if _oauth.is_waiting() else "Close the app"])
 	_hints.set_hints(hints, "Not signed in")

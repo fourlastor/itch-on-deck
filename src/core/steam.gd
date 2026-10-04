@@ -152,34 +152,70 @@ static func add_app() -> String:
 		return "Steam was not found on this machine."
 	if not app_shortcuts().is_empty():
 		# Steam has it already; asking again would add it a second time.
-		Config.set_value("app_in_steam", true)
+		_remember_app()
 		return ""
 	var desktop := _write_desktop("itch-on-deck", "itch on Deck", app_command(), Paths.data_dir(), _app_icon())
 	if desktop == "":
 		return "The shortcut file could not be written."
 	var problem := _ask_steam(desktop)
 	if problem == "":
-		Config.set_value("app_in_steam", true)
+		_remember_app()
 	return problem
 
 
 ## What the screens that offer it do: adds the app, gives its entry the
-## library images, and returns what to tell the user. `host` is a node that
-## outlives the screen, since the images may take a while.
+## library images, and returns what to tell the user ("" when the user
+## thought better of it). `host` is a node that outlives the screen, since
+## the images may take a while.
+##
+## Steam only shows an entry in its shortcuts file some time after it was
+## asked to add it, so the file cannot say whether a second press would make
+## a second entry. The app remembers that it asked, and asks the user first.
 static func put_app_in_steam(host: Node) -> String:
 	if Butler.demo != null:
 		return APP_ADDED
-	var there := not app_shortcuts().is_empty()
+	if not app_shortcuts().is_empty():
+		_remember_app()
+		apply_app_artwork(host, false)
+		return APP_THERE
+	if app_was_added():
+		var again: bool = await Nav.confirm("Add it again?",
+			"Steam was already asked to add this copy of itch on Deck. Adding it again makes a second entry, unless you removed the first one in Steam.",
+			"Add again", "Leave it", true)
+		if not again:
+			return ""
 	var problem := add_app()
 	if problem != "":
 		return problem
 	apply_app_artwork(host)
-	return APP_THERE if there else APP_ADDED
+	return APP_ADDED
 
 
-## Whether Steam has an entry that starts this copy of the app.
+## True when this copy of the app was handed to Steam before. A flag set by
+## an earlier version, which did not note which copy, counts too.
+static func app_was_added() -> bool:
+	var path := str(Config.get_value("app_steam_path", ""))
+	if path != "":
+		return path == SelfUpdate.program()
+	return bool(Config.get_value("app_in_steam", false))
+
+
+static func _remember_app() -> void:
+	if not bool(Config.get_value("app_in_steam", false)):
+		Config.set_value("app_in_steam", true)
+	if str(Config.get_value("app_steam_path", "")) != SelfUpdate.program():
+		Config.set_value("app_steam_path", SelfUpdate.program())
+
+
+## True when Steam's file holds an entry that starts this copy of the app.
+static func app_entry_found() -> bool:
+	return is_available() and not app_shortcuts().is_empty()
+
+
+## Whether Steam has, or was asked to make, an entry that starts this copy
+## of the app.
 static func app_is_in_steam() -> bool:
-	return bool(Config.get_value("app_in_steam", false)) or not app_shortcuts().is_empty()
+	return app_was_added() or not app_shortcuts().is_empty()
 
 
 ## The app's own entries in Steam's shortcuts files: the ones that start
@@ -218,8 +254,7 @@ static func restore_artwork(host: Node) -> void:
 		return
 	var mine := app_shortcuts()
 	if not mine.is_empty():
-		if not bool(Config.get_value("app_in_steam", false)):
-			Config.set_value("app_in_steam", true)
+		_remember_app()
 		if mine.any(func(shortcut: Dictionary) -> bool: return not _has_grid(shortcut)):
 			await apply_app_artwork(host, false)
 	var known: Dictionary = Config.get_value("steam", {})
