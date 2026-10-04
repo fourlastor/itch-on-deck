@@ -7,6 +7,7 @@ extends Control
 ##     --demo                 invented games instead of the butler daemon
 ##     --shot=<file.png>      save a picture of the window and quit
 ##     --screen=<name>        which screen to show for the picture
+##     --art=<folder>         save the app's Steam library images there and quit
 
 
 func _ready() -> void:
@@ -26,7 +27,10 @@ func _ready() -> void:
 	if Butler.demo == null:
 		SelfUpdate.mark_window_open()
 	await _start()
-	if options.has("shot"):
+	if options.has("art"):
+		await SteamArt.save_all(self, str(options["art"]))
+		get_tree().quit()
+	elif options.has("shot"):
 		await Shots.take(self, options)
 
 
@@ -61,6 +65,8 @@ func _load_in_background() -> void:
 	if SelfUpdate.enabled() and not SelfUpdate.is_managed():
 		await SelfUpdate.adopt()
 	await Library.check_updates()
+	if Butler.demo == null:
+		await Steam.restore_artwork(Nav)
 
 
 func _on_session_changed() -> void:

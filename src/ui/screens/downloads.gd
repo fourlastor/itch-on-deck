@@ -64,7 +64,7 @@ func _show() -> void:
 			var game: Dictionary = active.get("game", {})
 			%ActiveCover.show_entry(GameEntry.for_game(game), false, false)
 			%ActiveTitle.text = str(game.get("title", "Untitled"))
-		if is_visible_in_tree() and (lost_focus or get_viewport().gui_get_focus_owner() == null):
+		if is_visible_in_tree() and not Nav.dialog_open() and (lost_focus or get_viewport().gui_get_focus_owner() == null):
 			var target := first_focus()
 			if target != null:
 				target.grab_focus.call_deferred()

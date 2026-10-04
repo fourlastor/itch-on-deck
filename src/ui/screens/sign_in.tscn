@@ -86,6 +86,17 @@ layout_mode = 2
 title = "Use a saved key"
 state = "~/.config/itch/butler_creds"
 
+[node name="SteamGap" type="Control" parent="Column/Center/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="AddApp" parent="Column/Center/Form" instance=ExtResource("2_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Add itch on Deck to Steam"
+state = "To open it in Gaming Mode"
+
 [node name="Status" type="Label" parent="Column/Center/Form"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 56)

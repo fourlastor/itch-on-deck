@@ -1,0 +1,117 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="coral"]
+bg_color = Color(1, 0.4196, 0.3686, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="light"]
+bg_color = Color(0.9569, 0.9373, 0.9098, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="muted"]
+bg_color = Color(0.7255, 0.6902, 0.6431, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="deep"]
+bg_color = Color(0.2118, 0.1922, 0.1725, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="faint"]
+bg_color = Color(0.1647, 0.149, 0.1333, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+corner_detail = 12
+
+[sub_resource type="StyleBoxFlat" id="line"]
+bg_color = Color(0.2118, 0.1922, 0.1725, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+corner_detail = 12
+
+[node name="ArtShelf" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="Big" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 300.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("coral")
+
+[node name="Cover2" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 324.0
+offset_top = 96.0
+offset_right = 503.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("light")
+
+[node name="Cover3" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 527.0
+offset_top = 96.0
+offset_right = 706.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("muted")
+
+[node name="Cover4" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 730.0
+offset_top = 96.0
+offset_right = 909.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("deep")
+
+[node name="Cover5" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 933.0
+offset_top = 96.0
+offset_right = 1112.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("faint")
+
+[node name="Cover6" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 1136.0
+offset_top = 96.0
+offset_right = 1315.0
+offset_bottom = 238.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("faint")
+
+[node name="Line" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 258.0
+offset_right = 1500.0
+offset_bottom = 270.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("line")

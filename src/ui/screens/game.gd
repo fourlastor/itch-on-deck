@@ -64,6 +64,8 @@ func _on_state_changed() -> void:
 	entry = Library.entry_for(entry.game)
 	entry.owned = owned
 	_show()
+	if Nav.dialog_open():
+		return
 	if not is_instance_valid(get_viewport().gui_get_focus_owner()) or not get_viewport().gui_get_focus_owner().is_visible_in_tree():
 		var target := first_focus()
 		if target != null and is_visible_in_tree():

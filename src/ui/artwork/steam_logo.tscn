@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="FontVariation" path="res://src/ui/artwork/wordmark_font.tres" id="2_font"]
+
+[node name="SteamLogo" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1040.0
+offset_bottom = 240.0
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 1040.0
+offset_bottom = 240.0
+theme_override_colors/font_color = Color(0.9569, 0.9373, 0.9098, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 150
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "itch on Deck"

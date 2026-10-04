@@ -25,7 +25,7 @@ var host: Control
 var overlay: Control
 
 var _stack: Array[Control] = []
-var _dialogs := 0
+var _dialogs: Array[Control] = []
 
 
 func top() -> Control:
@@ -93,20 +93,33 @@ func choose(title: String, body: String, options: Array) -> int:
 
 
 func dialog_open() -> bool:
-	return _dialogs > 0
+	return not _dialogs.is_empty()
 
 
 func _run_dialog(dialog: Control, setup: Callable) -> Variant:
 	var previous := get_viewport().gui_get_focus_owner()
-	_dialogs += 1
+	_dialogs.append(dialog)
+	_confine_focus()
 	overlay.add_child(dialog)
 	setup.call()
 	var answer: Variant = await dialog.closed
 	dialog.queue_free()
-	_dialogs -= 1
+	_dialogs.erase(dialog)
+	_confine_focus()
 	if is_instance_valid(previous) and previous.is_visible_in_tree():
 		previous.grab_focus()
+	elif _dialogs.is_empty() and top() != null:
+		# What had the focus is gone (a list was rebuilt meanwhile).
+		_focus(top())
 	return answer
+
+
+## Only the topmost dialog can hold the focus. Without this the D-pad walks
+## out of a dialog onto the screen under it, and A then presses what is there.
+func _confine_focus() -> void:
+	host.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_INHERITED if _dialogs.is_empty() else Control.FOCUS_BEHAVIOR_DISABLED
+	for i in _dialogs.size():
+		_dialogs[i].focus_behavior_recursive = Control.FOCUS_BEHAVIOR_INHERITED if i == _dialogs.size() - 1 else Control.FOCUS_BEHAVIOR_DISABLED
 
 
 func _focus(screen: Control) -> void:
@@ -117,7 +130,7 @@ func _focus(screen: Control) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _dialogs > 0 or _stack.is_empty():
+	if dialog_open() or _stack.is_empty():
 		return
 	var current := top_name()
 	if event.is_action_pressed(&"ui_cancel"):

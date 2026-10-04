@@ -1,0 +1,12 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/BricolageGrotesque-Variable.ttf" id="1_bri"]
+
+[resource]
+base_font = ExtResource("1_bri")
+variation_opentype = {
+1869640570: 96,
+2003072104: 100,
+2003265652: 800
+}
+spacing_glyph = -2

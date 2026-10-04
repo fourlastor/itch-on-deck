@@ -22,8 +22,18 @@ exec "$BUTLER" --json --dbpath "$DATA/db/butler.db" launch --cave "$1"
 """
 
 
+## How many half seconds to wait for Steam to write a new entry down.
+const ARTWORK_TRIES := 40
+const APP_ADDED := "Steam was asked to add itch on Deck. If the library does not show it yet, it will after Steam restarts."
+const APP_THERE := "itch on Deck is in the Steam library already."
+
+
 ## Steam's folder, or "" when Steam is not installed for this user.
+## ITCH_ON_DECK_STEAM names another folder, for trying things out.
 static func root() -> String:
+	var override := OS.get_environment("ITCH_ON_DECK_STEAM")
+	if override != "":
+		return override if DirAccess.dir_exists_absolute(override.path_join("userdata")) else ""
 	var home := Paths.home()
 	for candidate: String in [
 		home.path_join(".local/share/Steam"),
@@ -90,7 +100,7 @@ static func apply_artwork(entry: GameEntry) -> bool:
 	if cover == null:
 		return false
 	var tree := Engine.get_main_loop() as SceneTree
-	for attempt in 12:
+	for attempt in ARTWORK_TRIES:
 		var found := SteamShortcuts.find(Paths.run_game_script(), entry.cave_id())
 		if not found.is_empty():
 			for shortcut: Dictionary in found:
@@ -140,6 +150,10 @@ static func forget(cave_id: String) -> void:
 static func add_app() -> String:
 	if not is_available():
 		return "Steam was not found on this machine."
+	if not app_shortcuts().is_empty():
+		# Steam has it already; asking again would add it a second time.
+		Config.set_value("app_in_steam", true)
+		return ""
 	var desktop := _write_desktop("itch-on-deck", "itch on Deck", app_command(), Paths.data_dir(), _app_icon())
 	if desktop == "":
 		return "The shortcut file could not be written."
@@ -147,6 +161,85 @@ static func add_app() -> String:
 	if problem == "":
 		Config.set_value("app_in_steam", true)
 	return problem
+
+
+## What the screens that offer it do: adds the app, gives its entry the
+## library images, and returns what to tell the user. `host` is a node that
+## outlives the screen, since the images may take a while.
+static func put_app_in_steam(host: Node) -> String:
+	if Butler.demo != null:
+		return APP_ADDED
+	var there := not app_shortcuts().is_empty()
+	var problem := add_app()
+	if problem != "":
+		return problem
+	apply_app_artwork(host)
+	return APP_THERE if there else APP_ADDED
+
+
+## Whether Steam has an entry that starts this copy of the app.
+static func app_is_in_steam() -> bool:
+	return bool(Config.get_value("app_in_steam", false)) or not app_shortcuts().is_empty()
+
+
+## The app's own entries in Steam's shortcuts files: the ones that start
+## this copy of it.
+static func app_shortcuts() -> Array:
+	if OS.has_feature("editor"):
+		return SteamShortcuts.find(OS.get_executable_path(), ProjectSettings.globalize_path("res://").trim_suffix("/"))
+	return SteamShortcuts.find(OS.get_executable_path(), "")
+
+
+## Gives the app's entry its library images. The app draws them itself
+## (SteamArt): it has no page cover to take them from, and they must be there
+## without a connection. `host` is any node of the running app. With `wait`,
+## Steam is given time to write a new entry down first.
+static func apply_app_artwork(host: Node, wait: bool = true) -> bool:
+	for attempt in (ARTWORK_TRIES if wait else 1):
+		var found := app_shortcuts()
+		if not found.is_empty():
+			var pictures: Dictionary = await SteamArt.render(host)
+			for shortcut: Dictionary in found:
+				var dir := SteamShortcuts.grid_dir(str(shortcut.user))
+				if not Paths.ensure_dir(dir):
+					continue
+				for ending: String in pictures:
+					pictures[ending].save_png(dir.path_join("%d%s.png" % [int(shortcut.app_id), ending]))
+			return not pictures.is_empty()
+		await host.get_tree().create_timer(0.5).timeout
+	return false
+
+
+## At the start of the app: an entry whose images are missing gets them now.
+## That covers a Steam that wrote the entry down late, and an entry made by
+## a version of the app that brought no images for itself.
+static func restore_artwork(host: Node) -> void:
+	if not is_available():
+		return
+	var mine := app_shortcuts()
+	if not mine.is_empty():
+		if not bool(Config.get_value("app_in_steam", false)):
+			Config.set_value("app_in_steam", true)
+		if mine.any(func(shortcut: Dictionary) -> bool: return not _has_grid(shortcut)):
+			await apply_app_artwork(host, false)
+	var known: Dictionary = Config.get_value("steam", {})
+	for cave: Dictionary in Library.caves:
+		var cave_id := str(cave.get("id", ""))
+		if not known.has(cave_id):
+			continue
+		var missing := SteamShortcuts.find(Paths.run_game_script(), cave_id).filter(
+			func(shortcut: Dictionary) -> bool: return not _has_grid(shortcut))
+		if missing.is_empty():
+			continue
+		var cover := _cover_image(GameEntry.for_cave(cave))
+		if cover == null:
+			continue
+		for shortcut: Dictionary in missing:
+			_write_grid(str(shortcut.user), int(shortcut.app_id), cover)
+
+
+static func _has_grid(shortcut: Dictionary) -> bool:
+	return FileAccess.file_exists(SteamShortcuts.grid_dir(str(shortcut.user)).path_join("%dp.png" % int(shortcut.app_id)))
 
 
 ## The command that starts this app: the exported binary, or the editor with

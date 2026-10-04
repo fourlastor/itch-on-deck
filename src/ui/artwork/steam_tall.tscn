@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://src/ui/artwork/art_shelf.tscn" id="1_shelf"]
+[ext_resource type="FontVariation" path="res://src/ui/artwork/wordmark_font.tres" id="2_font"]
+
+[node name="SteamTall" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 600.0
+offset_bottom = 900.0
+mouse_filter = 2
+
+[node name="Ground" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.102, 0.0941, 0.0863, 1)
+
+[node name="Shelf" parent="." instance=ExtResource("1_shelf")]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 170.0
+scale = Vector2(1.0, 1.0)
+
+[node name="Name" type="Label" parent="."]
+layout_mode = 0
+offset_left = 52.0
+offset_top = 478.0
+offset_right = 572.0
+offset_bottom = 808.0
+theme_override_colors/font_color = Color(0.9569, 0.9373, 0.9098, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 124
+theme_override_constants/line_spacing = -34
+text = "itch\non Deck"

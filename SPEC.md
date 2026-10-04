@@ -127,8 +127,9 @@ with no window (through `butler launch`), and it can add games to Steam as short
 - **R16a** The button then reads "In Steam" and offers "Remove from Steam". Uninstalling a game
   removes its Steam entry too.
 - **R16b** If Steam has to restart before the entry shows, the app says so.
-- **R16c** The app can add itself to Steam the same way, from Settings, so that it can be opened
-  in Gaming Mode.
+- **R16c** The app can add itself to Steam the same way, so that it can be opened in Gaming
+  Mode: from Settings, and from the sign-in screen, which is the first screen of a new install.
+  Its entry gets library images that the app draws itself.
 - **R17** A game that needs what the app cannot give (a browser, a licence to accept in a window
   it cannot show) is reported plainly, not started half-way.
 
@@ -367,7 +368,7 @@ Visual design is a separate step, with mock-ups first. What the screens have to 
 
 | Screen | Holds |
 |---|---|
-| Sign in | The QR code and the short code, or the field for an API key. |
+| Sign in | The QR code and the short code, or the field for an API key; Add itch on Deck to Steam. |
 | Lists | Tabs for Installed, Owned, Collections, My projects, Search. A grid or a list of covers and titles, each with its state (installed, update known, not installable here, draft). |
 | Game | Cover, title, short text, uploads, size, install location; Install, Play, Add to Steam (then In Steam, with Remove from Steam), Check for updates, Pin this version, Uninstall. |
 | Downloads | What is downloading and waiting, with progress, speed and time left; Cancel. |
@@ -459,7 +460,7 @@ Built in and tried only with a stand-in for butler, not yet seen on the Deck:
 
 2026-10-04. The app was built in Godot 4.7.2 and run on a Linux PC with Steam, signed in to a
 real account, against butler v15.31.0, with the draft project Sands of the Duel as the game.
-Nothing in this section was tried on a Deck.
+Only the part "On a Deck" below was tried on a Deck.
 
 ### Seen to work
 
@@ -526,10 +527,39 @@ Nothing in this section was tried on a Deck.
   to `urn:itchio:poll`. butler's own `Profile.LoginWithDevice` asks for the `itch` scope, so
   the app may have to run the five requests of that flow itself and hand the key to butler.
 
+### On a Deck
+
+2026-10-04, the first published build, started by hand on a Deck.
+
+- **The app started and was added to Steam there.** Whether Steam had to restart to show the
+  entry was not noted.
+- **A and B did nothing.** Godot's built-in actions for moving the focus (`ui_left` and the
+  other three) come with the D-pad and the left stick; `ui_accept` and `ui_cancel` come with
+  keyboard keys only. The project's input map now adds the controller's A and B to them
+  (`tools/setup_input_map.gd`). Sands of the Duel adds the same two when it starts, and its
+  controls work on a Deck.
+- **Every screen was then pressed through with a controller**, which had not been done before:
+  on a PC, with the presses sent by the screenshot helper (`--pad=`), not yet on the Deck. It
+  showed two more things.
+  - Godot chooses the control the D-pad moves to by distance alone. The focus walked out of an
+    open dialog onto the screen under it, where A then pressed a row; and from the end of a
+    section of Settings it jumped into the list of sections. Now the screen under a dialog
+    cannot take the focus, and the two columns of Settings are wired by hand: up and down stay
+    in a column, right enters a section, left and B leave it.
+  - A text field takes Enter by itself but not a controller's A. The filter, the search and the
+    field for an API key now hand A to the field.
+- **The app's own entry had no library images**, because the app wrote none for itself. They
+  are not taken from its itch.io page: an account that does not own the page may not be
+  allowed to read it (see Signing in), and the entry should look right with no connection. The
+  app draws them itself (the wide and the tall picture, the hero and the logo) when it adds
+  the entry, and at its start for an entry that lacks them. An entry of a game gets them at the
+  start too, if Steam wrote the entry down too late for them the first time.
+
 ### Still to verify
 
-- Everything on a Deck: Gaming Mode, Steam's on-screen keyboard, Steam's browser for the
-  sign-in, and adding to Steam there.
+- On a Deck: the controller after the changes above, Steam's on-screen keyboard, Steam's
+  browser for the sign-in, adding a game to Steam, and whether a new entry and its images show
+  without restarting Steam.
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
 - The app's own update from end to end, which needs a first published build; and whether an

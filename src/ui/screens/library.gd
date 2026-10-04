@@ -83,7 +83,13 @@ func show_tab(index: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if Nav.dialog_open() or _editing != "":
+	if Nav.dialog_open():
+		return
+	if _editing != "":
+		# The field takes Enter by itself; a controller's A has to be handed to it.
+		if event is InputEventJoypadButton and event.is_action_pressed(&"ui_accept"):
+			get_viewport().set_input_as_handled()
+			_on_text_submitted(_input.text)
 		return
 	if event.is_action_pressed(&"list_prev"):
 		get_viewport().set_input_as_handled()

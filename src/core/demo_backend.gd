@@ -74,7 +74,7 @@ func handle(method: String, params: Dictionary) -> Dictionary:
 			for name: String in ["tin", "bramble", "sixteen", "quarry", "riptide", "lowtide"]:
 				items.append({"game": _games[name]})
 			return _ok({"items": items, "stale": false})
-		"Search.Games":
+		"Search.Local":
 			return _ok({"games": [_games["tidewater"], _games["hollow"], _games["lowtide"], _games["riptide"]]})
 		"Fetch.GameOwnership":
 			var owned_ids: Array = [103, 107, 104, 108, 109, 102, 110, 111, 105, 112, 106, 113]

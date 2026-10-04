@@ -5,6 +5,9 @@ extends Control
 ##
 ## Device sign-in (a QR code approved on a phone) is not here yet: itch.io
 ## only lets approved applications use it.
+##
+## This is the first screen of a new install, so the row that puts the app
+## in Steam is here too: the rest can then be done in Gaming Mode.
 
 var _busy := false
 
@@ -21,12 +24,16 @@ func _ready() -> void:
 	%Key.editing_toggled.connect(func(on: bool) -> void:
 		if on:
 			Keyboard.show())
+	%AddApp.pressed.connect(_on_add_app)
 	_oauth.finished.connect(_on_oauth_finished)
-	for control: Control in [%Browser, %Key, %UseKey, %Saved]:
+	for control: Control in [%Browser, %Key, %UseKey, %Saved, %AddApp]:
 		control.focus_entered.connect(_show_hints)
 	%Browser.visible = OAuthLogin.is_configured()
 	%Saved.visible = Session.has_saved_key()
 	%Saved.state = Paths.display(Session.saved_key_path())
+	%AddApp.visible = Steam.is_available()
+	%SteamGap.visible = %AddApp.visible
+	_show_steam_row()
 	_show_rows()
 	_show_hints()
 
@@ -45,11 +52,31 @@ func back() -> bool:
 	return true
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# A text field starts by itself on Enter or a click; a controller's A has
+	# to be handed to it. A second A brings the keyboard back if it was closed.
+	if event is InputEventJoypadButton and event.is_action_pressed(&"ui_accept") and %Key.has_focus():
+		get_viewport().set_input_as_handled()
+		if %Key.is_editing():
+			Keyboard.show()
+		else:
+			%Key.edit()
+
+
 func _show_rows() -> void:
 	var has_key: bool = %Key.text.strip_edges() != ""
 	%UseKey.disabled = not has_key
 	%UseKey.state = "Checks the key with itch.io" if has_key else "Needs a key first"
 	%Browser.state = "Waiting for the browser. B stops." if _oauth.is_waiting() else "Opens itch.io to allow this app"
+
+
+func _show_steam_row() -> void:
+	%AddApp.state = "In the Steam library" if Steam.app_is_in_steam() else "To open it in Gaming Mode"
+
+
+func _on_add_app() -> void:
+	_say(Steam.put_app_in_steam(Nav))
+	_show_steam_row()
 
 
 func _on_browser() -> void:

@@ -71,24 +71,23 @@ func show_section(index: int) -> void:
 		_panes[i].visible = i == _section
 		_sections[i].set_pressed_no_signal(i == _section)
 	_say("")
+	_wire_focus()
 	_show_hints()
 
 
 func _enter_section(index: int) -> void:
 	show_section(index)
-	var target := _first_control(_panes[index])
-	if target != null:
-		target.grab_focus()
+	var controls := FocusOrder.focusable(_panes[index])
+	if not controls.is_empty():
+		controls[0].grab_focus()
 
 
-func _first_control(pane: Node) -> Control:
-	for child in pane.get_children():
-		if child is Control and child.visible and child.focus_mode == Control.FOCUS_ALL:
-			return child
-		var inner := _first_control(child) if child.get_child_count() > 0 and not (child is Button) and not (child is Segmented) else null
-		if inner != null:
-			return inner
-	return null
+## Up and down stay inside the list of sections, or inside the open section;
+## right goes into the section, left comes back out of it.
+func _wire_focus() -> void:
+	var controls := FocusOrder.focusable(_panes[_section])
+	FocusOrder.column(controls, _sections[_section])
+	FocusOrder.column(_sections, null, controls[0] if not controls.is_empty() else null)
 
 
 func _show_values() -> void:
@@ -150,6 +149,7 @@ func _show_locations() -> void:
 		if info is Dictionary:
 			free_total += float(info.get("freeSize", 0))
 	_sections[1].value = "%s · %s free" % ["1 folder" if locations.size() == 1 else "%d folders" % locations.size(), Format.size(free_total)]
+	_wire_focus()
 
 
 # --- what the controls do --------------------------------------------------
@@ -247,8 +247,7 @@ func _on_location_pressed(location: Dictionary, games: int) -> void:
 
 
 func _on_add_app() -> void:
-	var problem := Steam.add_app() if Butler.demo == null else ""
-	_say(problem if problem != "" else "Steam was asked to add itch on Deck. If the library does not show it yet, it will after Steam restarts.")
+	_say(Steam.put_app_in_steam(Nav))
 	_show_values()
 
 
