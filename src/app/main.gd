@@ -66,7 +66,10 @@ func _load_in_background() -> void:
 		await SelfUpdate.adopt()
 	await Library.check_updates()
 	if Butler.demo == null:
+		Schedule.keep_current()
 		await Steam.restore_artwork(Nav)
+		if Downloads.pending_count() == 0:
+			await Downloads.sweep()
 
 
 func _on_session_changed() -> void:

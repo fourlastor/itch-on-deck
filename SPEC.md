@@ -326,10 +326,19 @@ Description=itch on Deck: update the installed games
 
 [Service]
 Type=oneshot
-ExecStart=%h/.local/share/itch-on-deck/itch-on-deck update
+ExecStart="%h/.local/share/itch-on-deck/update-run" "<the app's program file>"
+SyslogIdentifier=itch-on-deck
 Nice=10
 IOSchedulingClass=idle
 ```
+
+`update-run` is a small script the app writes. It copies the app's program file to
+`~/.cache/itch-on-deck/update-run/` when the copy is not the same file any more, and starts the
+run from the copy with `--headless -- update`, telling it in `ITCH_ON_DECK_APP` where the app
+really is. The run cannot be started from the app's own file: it may have to replace that file,
+and Linux does not let a file be written while a program runs from it (section 14, On a Deck).
+The app writes the units and the script again at its start when they are not what it would
+write now, which is so after it was moved to another folder.
 
 ```ini
 # itch-on-deck-update.timer
@@ -356,7 +365,9 @@ What a run does:
 4. For each update: skip it when its game is running, or when it offers more than one possible
    upload. Otherwise queue it with `reason: update` and perform it.
 5. A download cut short is removed. With the connection gone that is "not now"; with the
-   connection there it is an error, and the run ends as failed so that systemd shows it.
+   connection there it is an error, and the run ends as failed so that systemd shows it. What
+   a removed download had fetched is deleted by butler a moment later; a run that ends before
+   that leaves the folder, and the next run, or the app at its start, removes it.
 6. Write to `state.json` what was updated, skipped and failed, for the app to show.
 
 A game being updated when the user starts it: butler's lock on the install folder makes the
@@ -432,7 +443,8 @@ the app's current butler and runs `butler launch`, so a butler update does not b
 7. **Updating the app itself.** Decided: the app is the page `fourlastor/itch-on-deck`, published
    by a GitHub Actions workflow, and updates through butler. It hands the folder it runs from
    to butler (`Install.Adopt`), under a setting of its own, apart from the games' schedule; the
-   update run applies an update only while the app's window is closed (section 14).
+   update run, which is started from a copy of the app (section 8), applies an update only
+   while the app's window is closed (section 14).
 8. **The name.** "itch on Deck" uses itch.io's name. Fine for a personal tool; check their brand
    rules before publishing it.
 
@@ -555,6 +567,69 @@ Only the part "On a Deck" below was tried on a Deck.
   the entry, and at its start for an entry that lacks them. An entry of a game gets them at the
   start too, if Steam wrote the entry down too late for them the first time.
 
+- **The update run works under the Deck's timer**: the journal shows it starting every 15
+  minutes and ending with "Nothing to update."
+- **The app's own update failed**, every run, with butler's "open
+  .../itch-on-deck.x86_64: text file busy". Linux does not let a program file be written while
+  a program runs from it, and the update run was that program: the timer started it from the
+  very file butler then had to replace. It failed whether the window was open or not. Nothing
+  was damaged, because butler fails before it changes the file. Reproduced on a PC with the
+  same two builds, and fixed: the timer now starts a script that runs the update from a copy
+  of the app (section 8). With that, on the PC, the installed app went from one published
+  build to the next ("Updated Itch on Deck to 30fbb73."), also through the unit and systemd.
+  A run that is started from the app's own file all the same (a unit written by an older
+  build, or by hand) skips the app's update and says why, instead of failing. **(to verify on
+  the Deck, which needs the fixed build installed by hand once, and then one build more.)**
+- **A failed update left its staging folder behind** (a few hundred KiB) in the install
+  location's `downloads` folder, because the run ended before butler deleted it. The update
+  run and the app now remove such folders at their start.
+
+### Looked into for version 1.1
+
+2026-10-04. Why a sign-in through the browser cannot open a collection or search itch.io, and
+what could be done about it. Tried with the browser sign-in of a real account, on a PC; the
+`probe key` command asks itch.io for a key through the browser and shows what that key may
+read. Nothing of this is built.
+
+- **What itch.io gives a third-party application.** Its OAuth page lists the scopes:
+  `profile:me`, `profile:games`, `profile:collections` and `profile:owned` (all four are in
+  `profile`), `game:view:ownership`, `game:view:rewards`, `game:view:uploads`, and
+  `collection:edit`. `collection:edit` creates and changes collections. Reading a collection's
+  games needs `collection:view` and reading a game's page needs `game:view`; neither is on the
+  list, and asking for `collection:view` is refused as "invalid scope", the way `itch` was.
+- **Collections.** The list of collections and a single collection are allowed; its games are
+  refused ("api key does not permit `collection:view`"), and no request that `collection:edit`
+  allows gives them back. A collection's page on itch.io can be read with no key at all when the
+  collection is public (`https://itch.io/c/<id>/<name>?format=json`, which holds the games as
+  the cells of the page) and answers 404 when it is private; the four of the test account are
+  private. So after a browser sign-in a public collection could be read from its page, and a
+  private one cannot be read by any means, until itch.io offers `collection:view` to
+  third-party applications. A sign-in with an API key reads both.
+- **Search.** The API has `/search/games`, and a browser sign-in may call it: asked for "moon"
+  with such a key, it gave 28 games back. butler never calls it (its `Search.Games` reads its
+  own database), so the app has to make the request itself, and for that it has to keep the
+  key, which today it hands to butler and forgets. A login made before the app keeps the key
+  has to be made once more. There are also pages that answer with no key at all
+  (`https://itch.io/autocomplete?query=`, up to five games as JSON, and
+  `https://itch.io/search?q=`, 54 a page as cells), but neither is a documented API and
+  `robots.txt` asks crawlers to stay out of `/search`; with the API open they are not needed.
+- **Installing a game that is in none of the account's lists** is what makes either worth
+  doing, and it works. `Install.GetUploads` and `Install.Plan`, which the app uses, make butler
+  read the game's page, which is refused. `Fetch.GameUploads`, `Install.PlanUpload` and
+  `Install.Queue` do not: `Install.Queue` takes the game as the caller describes it. Tried on a
+  free game the account does not own, described by hand (ID, address, title; `probe unlisted`):
+  the uploads were listed, the install was planned, and the game was downloaded and installed
+  (83 MB); the check for updates took it like any other, butler started it, and it was
+  uninstalled again. A paid game the account does not own answers with no uploads. The same
+  three requests serve the games the account does hold (tried on the account's own project
+  with butler's copies made stale), and would make the refetching of lists described under
+  Signing in unnecessary.
+- **The app's own update has the same fault.** `Install.Adopt` reads the game's page too. For
+  the account that owns the page the app gets around it through the list of projects; an
+  account that does not own it has no list to fetch, so it cannot hand its folder to butler.
+  The adoption described above has to become an install that names the folder
+  (`Install.Queue` with `noCave`) **(to verify)**, or wait for `game:view`.
+
 ### Still to verify
 
 - On a Deck: the controller after the changes above, Steam's on-screen keyboard, Steam's
@@ -562,7 +637,7 @@ Only the part "On a Deck" below was tried on a Deck.
   without restarting Steam.
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
-- The app's own update from end to end, which needs a first published build; and whether an
-  account that does not own the page can read it after a browser sign-in.
+- The app's own update on a Deck, with the fix above. For an account that does not own the
+  page it cannot work yet (see "Looked into for version 1.1").
 - The lists and the update run with no connection, and a download across a sleep.
 - Sign-in with a hand-made API key (the same request the browser sign-in ends with).

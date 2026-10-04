@@ -1,9 +1,10 @@
 class_name Updater
 extends RefCounted
 ## The scheduled update run (SPEC.md section 8), started by a systemd user
-## timer with no window: `itch-on-deck --headless -- update`. It updates the
-## installed games that are not pinned, and writes what it did to standard
-## output (the journal) and to state.json.
+## timer with no window: `itch-on-deck --headless -- update`, from a copy of
+## the app (see Schedule). It updates the installed games that are not
+## pinned, and writes what it did to standard output (the journal) and to
+## state.json.
 ##
 ## No connection is "not now", never a failure (R22). A game that is running
 ## is left for the next run (R21). An update with several possible uploads
@@ -58,6 +59,7 @@ func _run(record: Dictionary) -> int:
 	var own_cave := SelfUpdate.cave_id()
 	var games_on := Config.schedule() != "off"
 	var app_on := SelfUpdate.enabled()
+	await Downloads.sweep()
 	Downloads.start()
 	for cave_id: String in Library.updates.keys():
 		var update: Dictionary = Library.updates[cave_id]
@@ -72,7 +74,12 @@ func _run(record: Dictionary) -> int:
 			continue
 		var folder := _folder_of(cave_id)
 		if is_app:
-			if SelfUpdate.window_is_open():
+			if SelfUpdate.runs_from_own_file():
+				# butler cannot write a program file that is running, and this run is
+				# running from it. The timer starts the run from a copy (Schedule).
+				record["skipped"].append({"title": title, "reason": "this run was started from the app's own program file, which cannot replace itself"})
+				continue
+			if SelfUpdate.window_is_open() or Processes.any_under(folder):
 				record["skipped"].append({"title": title, "reason": "the app was open"})
 				continue
 		elif is_running(folder):
@@ -122,8 +129,19 @@ func _apply(cave_id: String, choice: Dictionary) -> String:
 			var reason := Downloads.error_text(d)
 			# A failed download is removed, so nothing is left half-installed.
 			await Downloads.discard(str(d.get("id", "")))
+			await _wait_until_gone(str(d.get("stagingFolder", "")))
 			return reason if reason != "" else "the download failed"
 	return ""
+
+
+## butler deletes what a discarded download had fetched a moment after it
+## is discarded. The run ends right after, so it waits for that here; what
+## is still there after the wait is removed by the next run (Downloads.sweep).
+func _wait_until_gone(folder: String) -> void:
+	for attempt in 6:
+		if folder == "" or not DirAccess.dir_exists_absolute(folder):
+			return
+		await _host.get_tree().create_timer(0.5).timeout
 
 
 func _not_ready(record: Dictionary, note: String) -> int:

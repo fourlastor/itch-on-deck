@@ -27,9 +27,23 @@ static func version() -> String:
 	return "dev"
 
 
-## The folder this copy runs from.
+## The app's program file. The update run is started from a copy of it,
+## because a program file cannot be written while a program runs from it;
+## the copy is told in ITCH_ON_DECK_APP where the real one is (see Schedule).
+static func program() -> String:
+	var named := OS.get_environment("ITCH_ON_DECK_APP")
+	return named if named != "" else OS.get_executable_path()
+
+
+## The folder the app is in.
 static func folder() -> String:
-	return OS.get_executable_path().get_base_dir()
+	return program().get_base_dir()
+
+
+## True when this process runs from the app's own program file, which butler
+## can then not replace.
+static func runs_from_own_file() -> bool:
+	return OS.get_executable_path() == program()
 
 
 ## A published build, as opposed to the project run from the editor.

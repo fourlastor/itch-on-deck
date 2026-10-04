@@ -84,6 +84,15 @@ static func run_game_script() -> String:
 	return data_dir().path_join("run-game")
 
 
+static func update_run_script() -> String:
+	return data_dir().path_join("update-run")
+
+
+## Where the update run's own copy of the app is kept (see Schedule).
+static func update_run_copy_dir() -> String:
+	return cache_dir().path_join("update-run")
+
+
 static func shortcuts_dir() -> String:
 	return data_dir().path_join("shortcuts")
 

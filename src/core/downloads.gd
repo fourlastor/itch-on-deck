@@ -120,6 +120,34 @@ func clear_finished() -> void:
 	await refresh()
 
 
+## Removes what earlier downloads left behind in the install locations.
+## butler deletes a discarded download's folder a moment after it is
+## discarded, and a run that ends before that moment leaves the folder
+## there. Only folders butler made are touched (they hold its
+## operate-context.json), and never the one of a download still listed.
+func sweep() -> void:
+	var listed: Dictionary = await Butler.request("Downloads.List")
+	if Butler.failed(listed):
+		return
+	var keep: Array[String] = []
+	var known: Variant = listed.result.get("downloads")
+	for d: Variant in (known if known is Array else []):
+		if d is Dictionary:
+			keep.append(str(d.get("id", "")))
+			keep.append(str(d.get("stagingFolder", "")).get_file())
+	var entries: Array = []
+	for location: Dictionary in await InstallLocations.list():
+		var root := str(location.get("path", "")).path_join("downloads")
+		if not DirAccess.dir_exists_absolute(root):
+			continue
+		for name in DirAccess.get_directories_at(root):
+			var folder := root.path_join(name)
+			if not (name in keep) and FileAccess.file_exists(folder.path_join("operate-context.json")):
+				entries.append({"path": folder, "size": 0})
+	if not entries.is_empty():
+		await Butler.request("CleanDownloads.Apply", {"entries": entries})
+
+
 func _queue(params: Dictionary) -> String:
 	params["queueDownload"] = true
 	params["profileId"] = Session.profile_id()
