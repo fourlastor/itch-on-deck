@@ -483,6 +483,9 @@ Nothing in this section was tried on a Deck.
   there at once, with no restart. Steam takes the name and the command from the `.desktop`
   file, not the icon and not the folder. The app then reads the ID Steam gave the entry from
   `shortcuts.vdf` and writes the library images into `userdata/<user>/config/grid/`.
+- **Removing from Steam by editing `shortcuts.vdf`** (way 2 of section 7) while Steam runs, on a
+  PC: the running Steam went on showing the two test entries, and after it was restarted they
+  were gone. Steam had not written the file again when it exited.
 - **Adopting a folder.** `Install.Adopt` makes an existing folder an installed game without
   downloading anything, and that folder then updates like any other. This is how the app
   updates itself: it registers the folder above its own as an install location that the lists
@@ -527,8 +530,8 @@ Nothing in this section was tried on a Deck.
 
 - Everything on a Deck: Gaming Mode, Steam's on-screen keyboard, Steam's browser for the
   sign-in, and adding to Steam there.
-- Whether an entry removed from `shortcuts.vdf` while Steam runs stays removed after Steam
-  exits.
+- Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
+  The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
 - The app's own update from end to end, which needs a first published build; and whether an
   account that does not own the page can read it after a browser sign-in.
 - The lists and the update run with no connection, and a download across a sleep.
