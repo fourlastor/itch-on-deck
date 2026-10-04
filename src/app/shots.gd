@@ -8,7 +8,8 @@ extends RefCounted
 ##
 ## --pad presses controller buttons one after the other, as a Deck would,
 ## once the screen is shown: a b x y l1 r1 view menu left right up down.
-## "type:some text" types into the focused field.
+## sl sr su sd push the left stick once and let it go; slh and srh hold it
+## for a second. "type:some text" types into the focused field.
 
 
 static func take(host: Node, options: Dictionary) -> void:
@@ -52,7 +53,12 @@ static func take(host: Node, options: Dictionary) -> void:
 	await tree.create_timer(float(options.get("wait", "0.9"))).timeout
 	var focused := host.get_viewport().gui_get_focus_owner()
 	var editing := (", editing" if focused.is_editing() else ", not editing") if focused is LineEdit else ""
-	print("screen: ", Nav.top_name(), "; focus: ", focused, editing)
+	var place := ""
+	if focused is Shelf:
+		place = "; shelf at %d of %d" % [focused.index + 1, focused.entries.size()]
+	elif focused is Segmented:
+		place = "; choice %d" % (focused.index + 1)
+	print("screen: ", Nav.top_name(), "; focus: ", focused, editing, place)
 	var image := host.get_viewport().get_texture().get_image()
 	var path := str(options["shot"])
 	var err := image.save_png(path)
@@ -78,6 +84,9 @@ static func _press(host: Node, button: String) -> void:
 			field.text_changed.emit(field.text)
 		await tree.create_timer(0.2).timeout
 		return
+	if STICK.has(button):
+		await _push_stick(tree, STICK[button][0], STICK[button][1], STICK[button][2])
+		return
 	if not PAD.has(button):
 		printerr("no such button: ", button)
 		return
@@ -89,3 +98,34 @@ static func _press(host: Node, button: String) -> void:
 		Input.parse_input_event(event)
 		await tree.create_timer(0.08).timeout
 	await tree.create_timer(0.35).timeout
+
+
+## The left stick: axis, direction, and how long it is held at its end.
+const STICK := {
+	"sl": [JOY_AXIS_LEFT_X, -1.0, 0.0], "sr": [JOY_AXIS_LEFT_X, 1.0, 0.0],
+	"su": [JOY_AXIS_LEFT_Y, -1.0, 0.0], "sd": [JOY_AXIS_LEFT_Y, 1.0, 0.0],
+	"slh": [JOY_AXIS_LEFT_X, -1.0, 1.0], "srh": [JOY_AXIS_LEFT_X, 1.0, 1.0],
+}
+const STICK_OUT: Array[float] = [0.2, 0.45, 0.62, 0.8, 0.95, 1.0]
+const STICK_BACK: Array[float] = [0.9, 0.55, 0.2, 0.0]
+
+
+## A stick travels: it sends a run of values on its way out and on its way
+## back, one a frame, and none while it rests at its end.
+static func _push_stick(tree: SceneTree, axis: JoyAxis, direction: float, hold: float) -> void:
+	for value in STICK_OUT:
+		await _stick_at(tree, axis, value * direction)
+	if hold > 0.0:
+		await tree.create_timer(hold).timeout
+	for value in STICK_BACK:
+		await _stick_at(tree, axis, value * direction)
+	await tree.create_timer(0.35).timeout
+
+
+static func _stick_at(tree: SceneTree, axis: JoyAxis, value: float) -> void:
+	var event := InputEventJoypadMotion.new()
+	event.device = 0
+	event.axis = axis
+	event.axis_value = value
+	Input.parse_input_event(event)
+	await tree.process_frame

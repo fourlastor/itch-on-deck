@@ -28,6 +28,7 @@ var _items: Dictionary = {}
 var _tween: Tween
 var _held := 0
 var _hold_time := 0.0
+var _stick := StickStep.new()
 
 @onready var _holder: Control = $Items
 @onready var _empty: Label = $Empty
@@ -36,6 +37,7 @@ var _hold_time := 0.0
 func _ready() -> void:
 	focus_entered.connect(_update_rings)
 	focus_exited.connect(_update_rings)
+	focus_exited.connect(_stick.reset)
 
 
 ## Shows a list. With `keep_place`, the focus stays where it was.
@@ -101,7 +103,14 @@ func _process(delta: float) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"ui_left"):
+	if event is InputEventJoypadMotion:
+		# One push of the stick is one step; held, it repeats like the D-pad.
+		if event.axis == JOY_AXIS_LEFT_X:
+			accept_event()
+			var pushed := _stick.step(event, JOY_AXIS_LEFT_X)
+			if pushed != 0:
+				_press(pushed)
+	elif event.is_action_pressed(&"ui_left"):
 		_press(-1)
 	elif event.is_action_pressed(&"ui_right"):
 		_press(1)

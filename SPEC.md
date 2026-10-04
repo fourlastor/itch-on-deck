@@ -606,6 +606,11 @@ Only the part "On a Deck" below was tried on a Deck.
   before, the app asks before adding again. The small icon of an entry cannot be set this
   way: Steam takes none from the shortcut it is handed, and what is written into its file is
   lost at its next save (see "What a running Steam does with its shortcuts file").
+- **One push of the stick ran through the whole list of games**, where the D-pad moved one.
+  A stick sends a run of events while it travels, and each one past the dead zone counts as
+  its action being pressed. Godot's own focus moves guard against that; the shelf and the
+  choice between a few values read left and right themselves and did not. Now one push is one
+  step, and a held stick repeats like a held D-pad.
 - **There was no way out of the app with a controller.** B on the first screen (the lists, the
   sign-in, the fetching of butler) now asks whether to close the app.
 

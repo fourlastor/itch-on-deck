@@ -8,12 +8,15 @@ signal value_changed(index: int)
 
 var index := 0
 
+var _stick := StickStep.new()
+
 @onready var _row: HBoxContainer = $Row
 
 
 func _ready() -> void:
 	focus_entered.connect(_apply)
 	focus_exited.connect(_apply)
+	focus_exited.connect(_stick.reset)
 	for i in _row.get_child_count():
 		var button: Button = _row.get_child(i)
 		button.pressed.connect(_on_segment_pressed.bind(i))
@@ -26,7 +29,14 @@ func select(new_index: int) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"ui_left"):
+	if event is InputEventJoypadMotion:
+		# One push of the stick changes the value by one.
+		if event.axis == JOY_AXIS_LEFT_X:
+			accept_event()
+			var pushed := _stick.step(event, JOY_AXIS_LEFT_X)
+			if pushed != 0:
+				_step(pushed)
+	elif event.is_action_pressed(&"ui_left"):
 		accept_event()
 		_step(-1)
 	elif event.is_action_pressed(&"ui_right"):
