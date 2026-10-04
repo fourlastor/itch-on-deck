@@ -1,0 +1,15 @@
+# Godot's import cache and editor state
+.godot/
+*.translation
+
+# Exported builds, and the version file written for them
+/build/
+/version.txt
+
+# The editor the publish workflow unpacks at the repo root
+/Godot_v*/
+
+# .NET artefacts, should the Mono editor create any
+.mono/
+/.vs/
+*.csproj.user

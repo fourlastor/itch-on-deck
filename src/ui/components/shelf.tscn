@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/shelf.gd" id="1_shelf"]
+
+[node name="Shelf" type="Control"]
+custom_minimum_size = Vector2(0, 385)
+layout_mode = 3
+anchors_preset = 0
+focus_mode = 2
+script = ExtResource("1_shelf")
+
+[node name="Items" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Empty" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 94.0
+offset_top = 120.0
+offset_right = 1000.0
+offset_bottom = 240.0
+theme_type_variation = &"LabelLeadMuted"
+text = "Nothing here yet."
+autowrap_mode = 3

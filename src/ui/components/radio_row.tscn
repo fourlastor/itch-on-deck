@@ -1,0 +1,93 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/radio_row.gd" id="1_radio"]
+
+[sub_resource type="StyleBoxFlat" id="ring"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="dot"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="RadioRow" type="Button"]
+custom_minimum_size = Vector2(0, 54)
+theme_type_variation = &"RadioRow"
+script = ExtResource("1_radio")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+
+[node name="Row" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="Ring" type="Panel" parent="Margin/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("ring")
+
+[node name="Dot" type="Panel" parent="Margin/Row/Ring"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("dot")
+
+[node name="Title" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelOption"
+text = "Linux"
+vertical_alignment = 1
+
+[node name="Tag" type="PanelContainer" parent="Margin/Row"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PanelChipOutline"
+
+[node name="TagText" type="Label" parent="Margin/Row/Tag"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelChipStrong"
+text = "Demo"
+vertical_alignment = 1
+
+[node name="State" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelRowState"
+horizontal_alignment = 2
+vertical_alignment = 1
+text_overrun_behavior = 3

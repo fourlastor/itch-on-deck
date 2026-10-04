@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/hint.gd" id="1_hint"]
+[ext_resource type="PackedScene" path="res://src/ui/components/glyph.tscn" id="2_glyph"]
+
+[node name="Hint" type="HBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 8
+script = ExtResource("1_hint")
+
+[node name="Glyph" parent="." instance=ExtResource("2_glyph")]
+layout_mode = 2
+
+[node name="Text" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"LabelHint"
+text = "Open"

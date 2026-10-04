@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/sign_in.gd" id="1_signin"]
+[ext_resource type="PackedScene" path="res://src/ui/components/action_row.tscn" id="2_action"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="3_hints"]
+[ext_resource type="Script" path="res://src/core/oauth_login.gd" id="4_oauth"]
+
+[node name="SignIn" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_signin")
+
+[node name="OAuth" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("4_oauth")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Center" type="CenterContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Form" type="VBoxContainer" parent="Column/Center"]
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Brand" type="Label" parent="Column/Center/Form"]
+layout_mode = 2
+theme_type_variation = &"LabelBrand"
+text = "itch on Deck"
+
+[node name="Title" type="Label" parent="Column/Center/Form"]
+layout_mode = 2
+theme_type_variation = &"TitleSignIn"
+text = "Sign in to itch.io"
+
+[node name="Lead" type="Label" parent="Column/Center/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+text = "Signing in happens once. butler keeps the login."
+autowrap_mode = 3
+
+[node name="Gap" type="Control" parent="Column/Center/Form"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="Browser" parent="Column/Center/Form" instance=ExtResource("2_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Sign in with the browser"
+state = "Opens itch.io to allow this app"
+
+[node name="KeyCaption" type="Label" parent="Column/Center/Form"]
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Or an API key from itch.io, under Settings, API keys"
+
+[node name="Key" type="LineEdit" parent="Column/Center/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+placeholder_text = "Type or paste the key"
+
+[node name="UseKey" parent="Column/Center/Form" instance=ExtResource("2_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Sign in with this key"
+state = "Needs a key first"
+
+[node name="Saved" parent="Column/Center/Form" instance=ExtResource("2_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Use a saved key"
+state = "~/.config/itch/butler_creds"
+
+[node name="Status" type="Label" parent="Column/Center/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_type_variation = &"LabelBodySoft"
+autowrap_mode = 3
+
+[node name="HintBar" parent="Column" instance=ExtResource("3_hints")]
+unique_name_in_owner = true
+layout_mode = 2

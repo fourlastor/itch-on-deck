@@ -1,0 +1,54 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/download_row.gd" id="1_row"]
+[ext_resource type="PackedScene" path="res://src/ui/components/cover.tscn" id="2_cover"]
+
+[node name="DownloadRow" type="Button"]
+custom_minimum_size = Vector2(0, 72)
+theme_type_variation = &"RowButton"
+script = ExtResource("1_row")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 22
+
+[node name="Row" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Cover" parent="Margin/Row" instance=ExtResource("2_cover")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 51)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Title" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelItemTitle"
+text = "Game"
+vertical_alignment = 1
+
+[node name="Sub" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBodyMuted"
+text = "Install"
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Right" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "Next"
+vertical_alignment = 1

@@ -1,0 +1,53 @@
+name: Publish to itch.io
+on:
+  push:
+    branches: [ main ]
+
+# a newer push takes over from a build still running
+concurrency:
+  group: publish
+  cancel-in-progress: true
+
+env:
+  ITCH_PROJECT: 'fourlastor/itch-on-deck'
+
+jobs:
+  export:
+    name: Export and publish
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Godot
+        uses: ./.github/actions/setup-godot
+
+      # ---- what a build can reuse from the one before
+      - name: Cache .godot
+        uses: actions/cache@v6
+        with:
+          path: .godot
+          key: dot-godot-${{ hashFiles('**/*.import', 'project.godot') }}
+          restore-keys: |
+            dot-godot-
+
+      # ---- the build
+      - name: Import resources
+        run: ./Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux.x86_64 --quiet --headless --path . --import
+      # every script and scene has to load before anything is published
+      - name: Check
+        run: ./Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux.x86_64 --quiet --headless --audio-driver Dummy --path . -- check
+        env:
+          ITCH_ON_DECK_DATA: ${{ runner.temp }}/itch-on-deck-data
+          ITCH_ON_DECK_CONFIG: ${{ runner.temp }}/itch-on-deck-config
+      # the build carries the commit it was made from, which is also its version on the page
+      - name: Linux Build
+        run: VERSION="$(git rev-parse --short HEAD)" tools/export.sh
+
+      # ---- to the page
+      - uses: jdno/setup-butler@v2.0.0
+      - name: Deploy 🚀
+        run: |
+          version="$(git rev-parse --short HEAD)"
+          butler push build/linux "$ITCH_PROJECT:linux" --userversion "$version"
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}

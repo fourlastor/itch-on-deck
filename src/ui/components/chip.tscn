@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/chip.gd" id="1_chip"]
+[ext_resource type="Texture2D" path="res://assets/icons/check.svg" id="2_check"]
+
+[node name="Chip" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 32)
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PanelChip"
+script = ExtResource("1_chip")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("2_check")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Text" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelChip"
+text = "Installed"
+vertical_alignment = 1

@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/shelf_item.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://src/ui/components/cover.tscn" id="2_cover"]
+
+[node name="ShelfItem" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 262.0
+offset_bottom = 385.0
+script = ExtResource("1_item")
+
+[node name="Cover" parent="." instance=ExtResource("2_cover")]
+layout_mode = 0
+offset_top = 141.0
+offset_right = 262.0
+offset_bottom = 349.0
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_top = 361.0
+offset_right = 262.0
+offset_bottom = 385.0
+theme_type_variation = &"LabelSmallMuted"
+text = "Game"
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Ring" type="Panel" parent="."]
+visible = false
+layout_mode = 0
+offset_top = 141.0
+offset_right = 262.0
+offset_bottom = 349.0
+mouse_filter = 2
+theme_type_variation = &"PanelFocusRing"

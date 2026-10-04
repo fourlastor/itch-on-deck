@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/detail_panel.gd" id="1_detail"]
+[ext_resource type="PackedScene" path="res://src/ui/components/fact_row.tscn" id="2_fact"]
+
+[node name="DetailPanel" type="PanelContainer"]
+theme_type_variation = &"PanelDetail"
+script = ExtResource("1_detail")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 94
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 0
+
+[node name="Columns" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 56
+
+[node name="Left" type="VBoxContainer" parent="Margin/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Margin/Columns/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleHero"
+text = "Game title"
+text_overrun_behavior = 3
+
+[node name="Chips" type="HBoxContainer" parent="Margin/Columns/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ShortText" type="Label" parent="Margin/Columns/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+text = "Short text."
+autowrap_mode = 3
+text_overrun_behavior = 3
+max_lines_visible = 2
+
+[node name="Facts" type="VBoxContainer" parent="Margin/Columns"]
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Fact1" parent="Margin/Columns/Facts" instance=ExtResource("2_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact2" parent="Margin/Columns/Facts" instance=ExtResource("2_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact3" parent="Margin/Columns/Facts" instance=ExtResource("2_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact4" parent="Margin/Columns/Facts" instance=ExtResource("2_fact")]
+unique_name_in_owner = true
+layout_mode = 2

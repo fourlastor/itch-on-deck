@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/pill_button.gd" id="1_pill"]
+[ext_resource type="PackedScene" path="res://src/ui/components/glyph.tscn" id="2_glyph"]
+
+[node name="PillButton" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 44)
+size_flags_vertical = 4
+mouse_default_cursor_shape = 2
+theme_type_variation = &"PanelPill"
+script = ExtResource("1_pill")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Glyph" parent="Row" instance=ExtResource("2_glyph")]
+unique_name_in_owner = true
+layout_mode = 2
+kind = 6
+
+[node name="Text" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPill"
+text = "Downloads"
+
+[node name="Count" type="PanelContainer" parent="Row"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PanelCount"
+
+[node name="Value" type="Label" parent="Row/Count"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBadge"
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1

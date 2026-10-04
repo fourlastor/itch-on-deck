@@ -1,0 +1,452 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/settings.gd" id="1_settings"]
+[ext_resource type="PackedScene" path="res://src/ui/components/screen_header.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://src/ui/components/section_button.tscn" id="3_section"]
+[ext_resource type="PackedScene" path="res://src/ui/components/action_row.tscn" id="4_action"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="5_hints"]
+[ext_resource type="Script" path="res://src/ui/components/segmented.gd" id="6_segmented"]
+[ext_resource type="PackedScene" path="res://src/ui/components/fact_row.tscn" id="7_fact"]
+[ext_resource type="Script" path="res://src/core/butler_install.gd" id="8_install"]
+[ext_resource type="Texture2D" path="res://assets/icons/plus.svg" id="9_plus"]
+[ext_resource type="Texture2D" path="res://assets/icons/refresh.svg" id="10_refresh"]
+[ext_resource type="Texture2D" path="res://assets/icons/steam_add.svg" id="11_steam"]
+
+[sub_resource type="ButtonGroup" id="sections"]
+
+[node name="Settings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Installer" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("8_install")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" parent="Column" instance=ExtResource("2_header")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Settings"
+show_settings = false
+
+[node name="Body" type="MarginContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 0
+
+[node name="Columns" type="HBoxContainer" parent="Column/Body"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="Sections" type="VBoxContainer" parent="Column/Body/Columns"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(372, 0)
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="Updates" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "Updates"
+button_pressed = true
+
+[node name="Locations" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "Install locations"
+
+[node name="Bandwidth" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "Bandwidth limit"
+
+[node name="App" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "This app"
+
+[node name="ButlerSection" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "butler"
+
+[node name="Account" parent="Column/Body/Columns/Sections" instance=ExtResource("3_section")]
+layout_mode = 2
+button_group = SubResource("sections")
+title = "Account"
+
+[node name="Pane" type="PanelContainer" parent="Column/Body/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"PanelRaised"
+
+[node name="Panes" type="VBoxContainer" parent="Column/Body/Columns/Pane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="UpdatesPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "Updates"
+
+[node name="ScheduleCaption" type="Label" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+layout_mode = 2
+theme_type_variation = &"LabelOption"
+text = "Update installed games on a schedule"
+
+[node name="ScheduleChoice" type="PanelContainer" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"PanelTrack"
+script = ExtResource("6_segmented")
+
+[node name="Row" type="HBoxContainer" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Option0" type="Button" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "Off"
+
+[node name="Option1" type="Button" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "15 min"
+
+[node name="Option2" type="Button" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "1 hour"
+
+[node name="Option3" type="Button" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "6 hours"
+
+[node name="Option4" type="Button" parent="Column/Body/Columns/Pane/Panes/UpdatesPane/ScheduleChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "Daily"
+
+[node name="ScheduleNote" type="Label" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "Runs without the app, from a systemd user timer. Pinned games are skipped. A game that is running waits for the next run."
+autowrap_mode = 3
+
+[node name="CheckAll" parent="Column/Body/Columns/Pane/Panes/UpdatesPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+title = "Check all installed games now"
+state = ""
+symbol = ExtResource("10_refresh")
+
+[node name="RunsCaption" type="Label" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Last runs"
+
+[node name="Runs" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes/UpdatesPane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="LocationsPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/LocationsPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "Install locations"
+
+[node name="LocationList" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes/LocationsPane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddLocation" parent="Column/Body/Columns/Pane/Panes/LocationsPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+title = "Add a location"
+state = "Pick a folder"
+symbol = ExtResource("9_plus")
+
+[node name="LocationsNote" type="Label" parent="Column/Body/Columns/Pane/Panes/LocationsPane"]
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "With more than one location, each install asks where to go. A game stays where it was installed."
+autowrap_mode = 3
+
+[node name="BandwidthPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/BandwidthPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "Bandwidth limit"
+
+[node name="LimitCaption" type="Label" parent="Column/Body/Columns/Pane/Panes/BandwidthPane"]
+layout_mode = 2
+theme_type_variation = &"LabelOption"
+text = "The most a download may use, in megabits per second"
+
+[node name="LimitChoice" type="PanelContainer" parent="Column/Body/Columns/Pane/Panes/BandwidthPane"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"PanelTrack"
+script = ExtResource("6_segmented")
+
+[node name="Row" type="HBoxContainer" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Option0" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "No limit"
+
+[node name="Option1" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "1"
+
+[node name="Option2" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "2"
+
+[node name="Option3" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "5"
+
+[node name="Option4" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "10"
+
+[node name="Option5" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "20"
+
+[node name="Option6" type="Button" parent="Column/Body/Columns/Pane/Panes/BandwidthPane/LimitChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "50"
+
+[node name="LimitNote" type="Label" parent="Column/Body/Columns/Pane/Panes/BandwidthPane"]
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "Applies to the downloads the app starts and to the scheduled updates."
+autowrap_mode = 3
+
+[node name="AppPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/AppPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "This app"
+
+[node name="AppVersion" parent="Column/Body/Columns/Pane/Panes/AppPane" instance=ExtResource("7_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SelfCaption" type="Label" parent="Column/Body/Columns/Pane/Panes/AppPane"]
+layout_mode = 2
+theme_type_variation = &"LabelOption"
+text = "Update itch on Deck itself"
+
+[node name="SelfChoice" type="PanelContainer" parent="Column/Body/Columns/Pane/Panes/AppPane"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"PanelTrack"
+script = ExtResource("6_segmented")
+
+[node name="Row" type="HBoxContainer" parent="Column/Body/Columns/Pane/Panes/AppPane/SelfChoice"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Option0" type="Button" parent="Column/Body/Columns/Pane/Panes/AppPane/SelfChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "Off"
+
+[node name="Option1" type="Button" parent="Column/Body/Columns/Pane/Panes/AppPane/SelfChoice/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentButton"
+toggle_mode = true
+text = "On"
+
+[node name="SelfNote" type="Label" parent="Column/Body/Columns/Pane/Panes/AppPane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "itch on Deck is a page on itch.io and updates the way a game does, through butler, while its window is closed. This switch is apart from the games' schedule."
+autowrap_mode = 3
+
+[node name="CheckApp" parent="Column/Body/Columns/Pane/Panes/AppPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+title = "Check for a new version now"
+state = ""
+symbol = ExtResource("10_refresh")
+
+[node name="AddApp" parent="Column/Body/Columns/Pane/Panes/AppPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+title = "Add itch on Deck to Steam"
+state = ""
+symbol = ExtResource("11_steam")
+
+[node name="ButlerPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/ButlerPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "butler"
+
+[node name="ButlerNote" type="Label" parent="Column/Body/Columns/Pane/Panes/ButlerPane"]
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "butler is itch.io's own tool: it signs in, downloads, patches and starts the games. The app keeps the one version it was tested with in its own folder."
+autowrap_mode = 3
+
+[node name="ButlerVersion" parent="Column/Body/Columns/Pane/Panes/ButlerPane" instance=ExtResource("7_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CheckButler" parent="Column/Body/Columns/Pane/Panes/ButlerPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+title = "Check for a newer butler"
+state = ""
+symbol = ExtResource("10_refresh")
+
+[node name="AccountPane" type="VBoxContainer" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Column/Body/Columns/Pane/Panes/AccountPane"]
+layout_mode = 2
+theme_type_variation = &"TitleSection"
+text = "Account"
+
+[node name="Who" type="Label" parent="Column/Body/Columns/Pane/Panes/AccountPane"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+text = "Signed in."
+autowrap_mode = 3
+
+[node name="SignOut" parent="Column/Body/Columns/Pane/Panes/AccountPane" instance=ExtResource("4_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+title = "Sign out"
+state = "Removes the login from this machine"
+
+[node name="Status" type="Label" parent="Column/Body/Columns/Pane/Panes"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"LabelBodySoft"
+autowrap_mode = 3
+
+[node name="HintBar" parent="Column" instance=ExtResource("5_hints")]
+unique_name_in_owner = true
+layout_mode = 2

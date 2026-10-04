@@ -1,0 +1,41 @@
+name: 'Godot Setup'
+description: 'The Godot editor at the repo root and the Linux export template the build uses'
+runs:
+  using: "composite"
+  steps:
+    # The project is GDScript only, but it is made with the .NET editor, so the build uses the
+    # same one: what is exported here is what was tried on a desk.
+    # NOTE: Mono downloads use an underscore instead of a dot between `linux` and `x86_64` in their URL
+    # and folder name within the ZIP, but not in the binary file name within the ZIP.
+    # Check the godot version in https://github.com/godotengine/godot-builds/releases/ - sometimes they're named A.B.C, sometimes A.B
+    - name: Setup environment
+      shell: bash
+      run: |
+        echo "GODOT_VERSION=4.7.2" >> $GITHUB_ENV
+        echo "RELEASE_NAME=stable" >> $GITHUB_ENV
+    - name: Cache godot installation
+      id: cache-godot-install
+      uses: actions/cache@v6
+      with:
+        path: |
+          Godot_v${{ env.GODOT_VERSION }}-${{ env.RELEASE_NAME }}_mono_linux_x86_64
+          ~/.local/share/godot/export_templates/
+        key: godot-installation-${{ env.GODOT_VERSION }}-${{ env.RELEASE_NAME }}
+    - name: Download godot
+      shell: bash
+      if: steps.cache-godot-install.outputs.cache-hit != 'true'
+      run: |
+        release="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${RELEASE_NAME}"
+        editor="Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64.zip"
+        templates="Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_export_templates.tpz"
+        curl -sSfLO "$release/$editor"
+        curl -sSfLO "$release/$templates"
+        unzip -q "$editor"
+        # the project is the repo root here, so the editor's folder sits inside it: this file
+        # keeps Godot from scanning it as part of the project
+        touch "Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64/.gdignore"
+        # of the templates, only the one the export uses
+        unzip -q "$templates" templates/version.txt templates/linux_release.x86_64
+        mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.${RELEASE_NAME}.mono
+        mv templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.${RELEASE_NAME}.mono
+        rm -r templates "$editor" "$templates"

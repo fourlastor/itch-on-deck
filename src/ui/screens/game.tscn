@@ -1,0 +1,206 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/game.gd" id="1_game"]
+[ext_resource type="PackedScene" path="res://src/ui/components/screen_header.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://src/ui/components/cover.tscn" id="3_cover"]
+[ext_resource type="PackedScene" path="res://src/ui/components/fact_row.tscn" id="4_fact"]
+[ext_resource type="PackedScene" path="res://src/ui/components/action_row.tscn" id="5_action"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="6_hints"]
+[ext_resource type="Texture2D" path="res://assets/icons/play.svg" id="7_play"]
+[ext_resource type="Texture2D" path="res://assets/icons/update.svg" id="8_update"]
+[ext_resource type="Texture2D" path="res://assets/icons/install.svg" id="9_install"]
+[ext_resource type="Texture2D" path="res://assets/icons/steam_add.svg" id="10_steam"]
+[ext_resource type="Texture2D" path="res://assets/icons/pin.svg" id="11_pin"]
+[ext_resource type="Texture2D" path="res://assets/icons/trash.svg" id="12_trash"]
+[ext_resource type="Texture2D" path="res://assets/icons/info.svg" id="13_info"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_game")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" parent="Column" instance=ExtResource("2_header")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Body" type="MarginContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 0
+
+[node name="Columns" type="HBoxContainer" parent="Column/Body"]
+layout_mode = 2
+theme_override_constants/separation = 48
+
+[node name="Left" type="VBoxContainer" parent="Column/Body/Columns"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Cover" parent="Column/Body/Columns/Left" instance=ExtResource("3_cover")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(440, 349)
+layout_mode = 2
+
+[node name="Facts" type="VBoxContainer" parent="Column/Body/Columns/Left"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Fact1" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact2" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact3" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Fact4" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Right" type="VBoxContainer" parent="Column/Body/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Chips" type="HBoxContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleGame"
+text = "Game title"
+text_overrun_behavior = 3
+
+[node name="ShortText" type="Label" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+text = "Short text."
+autowrap_mode = 3
+text_overrun_behavior = 3
+max_lines_visible = 2
+
+[node name="Notice" type="PanelContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"PanelNotice"
+
+[node name="Row" type="HBoxContainer" parent="Column/Body/Columns/Right/Notice"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="Column/Body/Columns/Right/Notice/Row"]
+modulate = Color(0.0627, 0.1255, 0.1725, 1)
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("13_info")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NoticeText" type="Label" parent="Column/Body/Columns/Right/Notice/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelNotice"
+text = "Added to Steam."
+autowrap_mode = 3
+
+[node name="Message" type="PanelContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"PanelRaisedSmall"
+
+[node name="Column" type="VBoxContainer" parent="Column/Body/Columns/Right/Message"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MessageText" type="Label" parent="Column/Body/Columns/Right/Message/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "This game cannot be installed here."
+autowrap_mode = 3
+
+[node name="MessageCaption" type="Label" parent="Column/Body/Columns/Right/Message/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "What the page has"
+
+[node name="MessageList" type="VBoxContainer" parent="Column/Body/Columns/Right/Message/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Actions" type="VBoxContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Play" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Play"
+symbol = ExtResource("7_play")
+
+[node name="Update" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Check for updates"
+symbol = ExtResource("8_update")
+
+[node name="Install" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Install"
+symbol = ExtResource("9_install")
+
+[node name="Steam" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Add to Steam"
+symbol = ExtResource("10_steam")
+
+[node name="Pin" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Pin this version"
+symbol = ExtResource("11_pin")
+
+[node name="Uninstall" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Uninstall"
+symbol = ExtResource("12_trash")
+
+[node name="HintBar" parent="Column" instance=ExtResource("6_hints")]
+unique_name_in_owner = true
+layout_mode = 2

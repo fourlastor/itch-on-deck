@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/fact_row.gd" id="1_fact"]
+
+[node name="FactRow" type="VBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 0
+script = ExtResource("1_fact")
+
+[node name="Row" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 39)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Key" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelFactKey"
+text = "On disk"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelFact"
+text = "204 MB"
+horizontal_alignment = 2
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Line" type="ColorRect" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.2118, 0.1922, 0.1725, 1)

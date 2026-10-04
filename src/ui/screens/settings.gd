@@ -1,0 +1,329 @@
+extends Control
+## Settings (SPEC.md section 9). The sections are on the left, each with its
+## present value under its name; the focused section's controls are on the
+## right. A enters a section, B comes back out.
+
+const LocationScene := preload("res://src/ui/components/location_row.tscn")
+const RunScene := preload("res://src/ui/components/run_row.tscn")
+const RUNS_SHOWN := 4
+
+var _section := 0
+var _busy := false
+
+@onready var _hints: HintBar = %HintBar
+@onready var _sections: Array[Node] = %Sections.get_children()
+@onready var _panes: Array[Node] = [%UpdatesPane, %LocationsPane, %BandwidthPane, %AppPane, %ButlerPane, %AccountPane]
+
+
+func _ready() -> void:
+	%Header.back_pressed.connect(Nav.pop)
+	for i in _sections.size():
+		_sections[i].focus_entered.connect(show_section.bind(i))
+		_sections[i].pressed.connect(_enter_section.bind(i))
+	%ScheduleChoice.value_changed.connect(_on_schedule_changed)
+	%LimitChoice.value_changed.connect(_on_limit_changed)
+	%SelfChoice.value_changed.connect(_on_self_update_changed)
+	%CheckAll.pressed.connect(_on_check_all)
+	%AddLocation.pressed.connect(_on_add_location)
+	%AddApp.pressed.connect(_on_add_app)
+	%CheckApp.pressed.connect(_on_check_app)
+	%CheckButler.pressed.connect(_on_check_butler)
+	%SignOut.pressed.connect(_on_sign_out)
+	for control: Control in [%ScheduleChoice, %LimitChoice, %SelfChoice, %CheckAll, %AddLocation, %AddApp, %CheckApp, %CheckButler, %SignOut]:
+		control.focus_entered.connect(_show_hints)
+
+
+func open(_args: Dictionary) -> void:
+	%ScheduleChoice.select(Config.SCHEDULES.find(Config.schedule()))
+	%LimitChoice.select(maxi(Bandwidth.CHOICES.find(int(Config.get_value("bandwidth_kbps", 0))), 0))
+	%SelfChoice.select(1 if SelfUpdate.enabled() else 0)
+	%ButlerVersion.setup("Version in use", ButlerInstall.VERSION, true)
+	%AppVersion.setup("This copy", "Version %s" % SelfUpdate.version() if SelfUpdate.is_a_build() else "Run from the project's sources", true)
+	%Who.text = "Signed in as %s." % Session.user_name()
+	_show_values()
+	_show_runs()
+	_show_locations()
+	show_section(0)
+
+
+func first_focus() -> Control:
+	return _sections[_section]
+
+
+func resume() -> void:
+	_show_values()
+	_show_locations()
+
+
+## B inside a section comes back to the list of sections.
+func back() -> bool:
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused != null and %Panes.is_ancestor_of(focused):
+		_sections[_section].grab_focus()
+		return true
+	return false
+
+
+## Also used by the screenshot helper.
+func show_section(index: int) -> void:
+	_section = clampi(index, 0, _panes.size() - 1)
+	for i in _panes.size():
+		_panes[i].visible = i == _section
+		_sections[i].set_pressed_no_signal(i == _section)
+	_say("")
+	_show_hints()
+
+
+func _enter_section(index: int) -> void:
+	show_section(index)
+	var target := _first_control(_panes[index])
+	if target != null:
+		target.grab_focus()
+
+
+func _first_control(pane: Node) -> Control:
+	for child in pane.get_children():
+		if child is Control and child.visible and child.focus_mode == Control.FOCUS_ALL:
+			return child
+		var inner := _first_control(child) if child.get_child_count() > 0 and not (child is Button) and not (child is Segmented) else null
+		if inner != null:
+			return inner
+	return null
+
+
+func _show_values() -> void:
+	_sections[0].value = Schedule.label(Config.schedule())
+	_sections[2].value = Bandwidth.label(int(Config.get_value("bandwidth_kbps", 0)))
+	var app_parts: PackedStringArray = ["Updates itself" if SelfUpdate.enabled() else "Does not update itself"]
+	app_parts.append("in Steam" if bool(Config.get_value("app_in_steam", false)) else "not in Steam")
+	_sections[3].value = ", ".join(app_parts)
+	_sections[4].value = "v" + ButlerInstall.VERSION
+	_sections[5].value = Session.user_name()
+	var checked := Library.last_update_check
+	var known := Library.updates.size()
+	if checked > 0:
+		%CheckAll.state = "%s · checked %s" % ["No update known" if known == 0 else ("1 update known" if known == 1 else "%d updates known" % known), Format.moment(checked)]
+	else:
+		%CheckAll.state = "Not checked yet"
+	%AddApp.state = "In the Steam library" if bool(Config.get_value("app_in_steam", false)) else "Not in the Steam library"
+	var app_update := Library.update_for_cave(SelfUpdate.cave_id()) if SelfUpdate.is_managed() else {}
+	if not SelfUpdate.is_managed():
+		%CheckApp.state = "butler does not manage this folder yet"
+	elif app_update.is_empty():
+		%CheckApp.state = "No newer version known"
+	else:
+		%CheckApp.state = GameText.update_summary(app_update)
+	var next := Schedule.next_run() if Butler.demo == null else 0
+	%Header.set_note(("Next update run %s" % Format.moment(next)) if next > 0 else "")
+
+
+func _show_runs() -> void:
+	for child in %Runs.get_children():
+		child.queue_free()
+	var runs := UpdateState.runs() if Butler.demo == null else _demo_runs()
+	%RunsCaption.text = "Last runs" if not runs.is_empty() else "No update run yet"
+	var shown := mini(runs.size(), RUNS_SHOWN)
+	for i in shown:
+		var run: Dictionary = runs[i]
+		var row := RunScene.instantiate()
+		%Runs.add_child(row)
+		row.setup(Format.moment(int(run.get("at", 0))).capitalize(), UpdateState.describe(run), i == shown - 1)
+
+
+func _show_locations() -> void:
+	var locations: Array = await InstallLocations.for_games()
+	if not is_inside_tree():
+		return
+	for child in %LocationList.get_children():
+		child.queue_free()
+	var free_total := 0.0
+	for location: Dictionary in locations:
+		var id := str(location.get("id", ""))
+		var games := Library.caves.filter(func(c: Dictionary) -> bool:
+			return str(c.get("installInfo", {}).get("installLocation", "")) == id).size()
+		var row := LocationScene.instantiate()
+		%LocationList.add_child(row)
+		row.setup(location, games)
+		row.pressed.connect(_on_location_pressed.bind(location, games))
+		row.focus_entered.connect(_show_hints)
+		var info: Variant = location.get("sizeInfo")
+		if info is Dictionary:
+			free_total += float(info.get("freeSize", 0))
+	_sections[1].value = "%s · %s free" % ["1 folder" if locations.size() == 1 else "%d folders" % locations.size(), Format.size(free_total)]
+
+
+# --- what the controls do --------------------------------------------------
+
+func _on_schedule_changed(index: int) -> void:
+	Config.set_value("schedule", Config.SCHEDULES[index])
+	_apply_schedule()
+
+
+func _on_self_update_changed(index: int) -> void:
+	if index == 1 and Butler.demo == null:
+		# butler has to know the app's folder before it can update it.
+		var problem: String = await SelfUpdate.adopt()
+		if problem != "":
+			%SelfChoice.select(0)
+			Config.set_value("self_update", false)
+			_say(problem)
+			_show_values()
+			return
+	Config.set_value("self_update", index == 1)
+	_apply_schedule()
+
+
+func _on_check_app() -> void:
+	if _busy or Butler.demo != null:
+		return
+	_busy = true
+	%CheckApp.state = "Asking itch.io"
+	var problem: String = await SelfUpdate.adopt()
+	if problem == "":
+		problem = await Library.check_updates([SelfUpdate.cave_id()])
+	_busy = false
+	if problem != "":
+		_say(problem)
+	elif Library.update_for_cave(SelfUpdate.cave_id()).is_empty():
+		_say("This is the newest version.")
+	elif SelfUpdate.enabled():
+		_say("A newer version is known. The update run applies it the next time it finds the app closed.")
+	else:
+		_say("A newer version is known. Switch on \"Update itch on Deck itself\" to have it applied while the app is closed.")
+	_show_values()
+
+
+func _apply_schedule() -> void:
+	var problem := Schedule.apply() if Butler.demo == null else ""
+	_say(problem)
+	_show_values()
+
+
+func _on_limit_changed(index: int) -> void:
+	Config.set_value("bandwidth_kbps", Bandwidth.CHOICES[index])
+	await Bandwidth.apply()
+	_show_values()
+
+
+func _on_check_all() -> void:
+	if _busy:
+		return
+	_busy = true
+	%CheckAll.state = "Looking for updates"
+	var problem: String = await Library.check_updates()
+	_busy = false
+	_say(("The check did not work: %s" % problem) if problem != "" else "")
+	_show_values()
+
+
+func _on_add_location() -> void:
+	var candidates := _location_candidates()
+	if candidates.is_empty():
+		_say("No other disk was found. Put in an SD card, or mount a disk, and try again.")
+		return
+	var names: Array = candidates.map(func(path: String) -> String: return Paths.display(path))
+	var pick: int = await Nav.choose("Add an install location", "A folder named itch is made on the disk you pick.", names)
+	if pick < 0:
+		return
+	var problem: String = await InstallLocations.add(candidates[pick])
+	if problem == "":
+		await InstallLocations.remember()
+	_say(problem)
+	_show_locations()
+
+
+func _on_location_pressed(location: Dictionary, games: int) -> void:
+	if games > 0:
+		_say("%s holds %s. Uninstall them before removing the location." % [
+			InstallLocations.label(location), "1 game" if games == 1 else "%d games" % games])
+		return
+	var yes: bool = await Nav.confirm("Remove this location?",
+		"%s will no longer be offered for installs. The folder itself is not deleted." % Paths.display(str(location.get("path", ""))),
+		"Remove", "Keep it", true)
+	if yes:
+		_say(await InstallLocations.remove(str(location.get("id", ""))))
+		_show_locations()
+		%AddLocation.grab_focus()
+
+
+func _on_add_app() -> void:
+	var problem := Steam.add_app() if Butler.demo == null else ""
+	_say(problem if problem != "" else "Steam was asked to add itch on Deck. If the library does not show it yet, it will after Steam restarts.")
+	_show_values()
+
+
+func _on_check_butler() -> void:
+	if _busy:
+		return
+	_busy = true
+	%CheckButler.state = "Asking broth.itch.zone"
+	var latest: String = await %Installer.latest_version()
+	_busy = false
+	if latest == "":
+		%CheckButler.state = "No answer"
+	elif latest == ButlerInstall.VERSION:
+		%CheckButler.state = "%s is the newest" % latest
+	else:
+		%CheckButler.state = "%s is out" % latest
+		_say("butler %s is out. This version of the app was tested with %s and keeps using it; a newer app brings a newer butler." % [latest, ButlerInstall.VERSION])
+
+
+func _on_sign_out() -> void:
+	var yes: bool = await Nav.confirm("Sign out?",
+		"This removes the login from this machine. The installed games stay, and can be played from Steam where they were added.",
+		"Sign out", "Stay signed in", true)
+	if yes:
+		await Session.logout()
+
+
+## Folders that could hold games: an "itch" folder on every disk mounted
+## under /run/media, which is where SteamOS puts SD cards.
+func _location_candidates() -> Array:
+	var out: Array = []
+	var known: Array = Config.get_value("install_locations", []).map(func(l: Dictionary) -> String: return str(l.get("path", "")))
+	var roots: Array = ["/run/media/" + OS.get_environment("USER"), "/run/media"]
+	for root: String in roots:
+		if not DirAccess.dir_exists_absolute(root):
+			continue
+		for name in DirAccess.get_directories_at(root):
+			var disk := root.path_join(name)
+			if disk in roots:
+				continue
+			var candidate := disk.path_join("itch")
+			if not (candidate in known) and not (candidate in out):
+				out.append(candidate)
+	var home_default := Paths.default_install_location()
+	if not (home_default in known):
+		out.append(home_default)
+	return out
+
+
+func _say(text: String) -> void:
+	%Status.text = text
+	%Status.visible = text != ""
+
+
+func _show_hints() -> void:
+	var focused := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var hints: Array = []
+	var inside: bool = focused != null and %Panes.is_ancestor_of(focused)
+	if focused is Segmented:
+		hints.append([Glyph.Kind.DPAD, "Change"])
+	elif focused is ActionRow:
+		hints.append([Glyph.Kind.A, focused.title])
+	elif focused != null and focused.get_parent() == %LocationList:
+		hints.append([Glyph.Kind.A, "Remove this location"])
+	elif focused != null and not inside:
+		hints.append([Glyph.Kind.A, "Open"])
+	hints.append([Glyph.Kind.B, "Back to the sections" if inside else "Back"])
+	_hints.set_hints(hints, "")
+
+
+func _demo_runs() -> Array:
+	var now := int(Time.get_unix_time_from_system())
+	return [
+		{"at": now - 3600 * 2, "updated": [{"title": "Hollow Tide", "version": "build 1177310"}]},
+		{"at": now - 3600 * 8, "outcome": "no_connection"},
+		{"at": now - 3600 * 20, "updated": [{"title": "Sands of the Duel", "version": "7b8ae68"}], "skipped": [{"title": "Bramble Circuit", "reason": "it was running"}]},
+		{"at": now - 3600 * 26, "left": [{"title": "Sixteen Rooms", "reason": "2 possible uploads"}]},
+	]

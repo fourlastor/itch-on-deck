@@ -1,0 +1,139 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/install.gd" id="1_install"]
+[ext_resource type="PackedScene" path="res://src/ui/components/screen_header.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://src/ui/components/cover.tscn" id="3_cover"]
+[ext_resource type="PackedScene" path="res://src/ui/components/fact_row.tscn" id="4_fact"]
+[ext_resource type="PackedScene" path="res://src/ui/components/action_row.tscn" id="5_action"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="6_hints"]
+[ext_resource type="Texture2D" path="res://assets/icons/install.svg" id="7_icon"]
+
+[node name="Install" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_install")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" parent="Column" instance=ExtResource("2_header")]
+unique_name_in_owner = true
+layout_mode = 2
+back_text = "Cancel"
+
+[node name="Body" type="MarginContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 0
+
+[node name="Columns" type="HBoxContainer" parent="Column/Body"]
+layout_mode = 2
+theme_override_constants/separation = 48
+
+[node name="Left" type="VBoxContainer" parent="Column/Body/Columns"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Cover" parent="Column/Body/Columns/Left" instance=ExtResource("3_cover")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(440, 349)
+layout_mode = 2
+
+[node name="Facts" type="VBoxContainer" parent="Column/Body/Columns/Left"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Fits" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="NoFit" parent="Column/Body/Columns/Left/Facts" instance=ExtResource("4_fact")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Right" type="VBoxContainer" parent="Column/Body/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleGame"
+text = "Game title"
+text_overrun_behavior = 3
+
+[node name="ShortText" type="Label" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+autowrap_mode = 3
+text_overrun_behavior = 3
+max_lines_visible = 1
+
+[node name="UploadCaption" type="Label" parent="Column/Body/Columns/Right"]
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Upload"
+
+[node name="Uploads" type="VBoxContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LocationCaption" type="Label" parent="Column/Body/Columns/Right"]
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Install to"
+
+[node name="Locations" type="VBoxContainer" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Summary" type="Label" parent="Column/Body/Columns/Right"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_type_variation = &"LabelBodySoft"
+text = "Reading the uploads."
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Column/Body/Columns/Right"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Confirm" parent="Column/Body/Columns/Right/Buttons" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+title = "Install"
+symbol = ExtResource("7_icon")
+
+[node name="Cancel" type="Button" parent="Column/Body/Columns/Right/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="HintBar" parent="Column" instance=ExtResource("6_hints")]
+unique_name_in_owner = true
+layout_mode = 2

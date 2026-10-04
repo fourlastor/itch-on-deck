@@ -1,0 +1,117 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/library.gd" id="1_library"]
+[ext_resource type="PackedScene" path="res://src/ui/components/top_bar.tscn" id="2_top"]
+[ext_resource type="PackedScene" path="res://src/ui/components/shelf.tscn" id="3_shelf"]
+[ext_resource type="PackedScene" path="res://src/ui/components/detail_panel.tscn" id="4_detail"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="5_hints"]
+[ext_resource type="Texture2D" path="res://assets/icons/offline.svg" id="6_offline"]
+
+[node name="Library" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_library")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="TopBar" parent="Column" instance=ExtResource("2_top")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="StatusRow" type="MarginContainer" parent="Column"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 8
+
+[node name="Banner" type="PanelContainer" parent="Column/StatusRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"PanelBanner"
+
+[node name="Row" type="HBoxContainer" parent="Column/StatusRow/Banner"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="Column/StatusRow/Banner/Row"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("6_offline")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BannerTitle" type="Label" parent="Column/StatusRow/Banner/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyStrong"
+text = "No connection."
+
+[node name="BannerText" type="Label" parent="Column/StatusRow/Banner/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBodySoft"
+text = "This list may be out of date."
+text_overrun_behavior = 3
+
+[node name="Field" type="HBoxContainer" parent="Column/StatusRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Input" type="LineEdit" parent="Column/StatusRow/Field"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+placeholder_text = "Search itch.io"
+select_all_on_focus = true
+
+[node name="FieldNote" type="Label" parent="Column/StatusRow/Field"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+
+[node name="Shelf" parent="Column" instance=ExtResource("3_shelf")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Gap" type="Control" parent="Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="Detail" parent="Column" instance=ExtResource("4_detail")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HintBar" parent="Column" instance=ExtResource("5_hints")]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PanelHintBar"

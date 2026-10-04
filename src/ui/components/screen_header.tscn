@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/screen_header.gd" id="1_header"]
+[ext_resource type="PackedScene" path="res://src/ui/components/pill_button.tscn" id="2_pill"]
+
+[node name="ScreenHeader" type="MarginContainer"]
+custom_minimum_size = Vector2(0, 76)
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 48
+script = ExtResource("1_header")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Back" parent="Row" instance=ExtResource("2_pill")]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+glyph = 1
+
+[node name="Title" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleScreen"
+vertical_alignment = 1
+
+[node name="Note" type="Label" parent="Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBodyMuted"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Globals" type="HBoxContainer" parent="Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="Downloads" parent="Row/Globals" instance=ExtResource("2_pill")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Settings" parent="Row/Globals" instance=ExtResource("2_pill")]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Settings"
+glyph = 7

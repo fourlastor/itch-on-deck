@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/setup.gd" id="1_setup"]
+[ext_resource type="Script" path="res://src/core/butler_install.gd" id="2_install"]
+[ext_resource type="PackedScene" path="res://src/ui/components/action_row.tscn" id="3_action"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="4_hints"]
+[ext_resource type="Texture2D" path="res://assets/icons/retry.svg" id="5_retry"]
+
+[node name="Setup" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_setup")
+
+[node name="Installer" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_install")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Center" type="CenterContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Form" type="VBoxContainer" parent="Column/Center"]
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Brand" type="Label" parent="Column/Center/Form"]
+layout_mode = 2
+theme_type_variation = &"LabelBrand"
+text = "itch on Deck"
+
+[node name="Title" type="Label" parent="Column/Center/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleSignIn"
+text = "Getting butler"
+
+[node name="Lead" type="Label" parent="Column/Center/Form"]
+layout_mode = 2
+theme_type_variation = &"LabelLead"
+text = "butler is itch.io's own tool: it signs in, downloads, patches and starts the games. The app fetches it once, about 10 MB, and keeps it in its own folder."
+autowrap_mode = 3
+
+[node name="Gap" type="Control" parent="Column/Center/Form"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="Bar" type="ProgressBar" parent="Column/Center/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 1.0
+step = 0.001
+show_percentage = false
+
+[node name="Status" type="Label" parent="Column/Center/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_type_variation = &"LabelBodySoft"
+text = "Starting"
+autowrap_mode = 3
+
+[node name="Retry" parent="Column/Center/Form" instance=ExtResource("3_action")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+title = "Try again"
+symbol = ExtResource("5_retry")
+
+[node name="HintBar" parent="Column" instance=ExtResource("4_hints")]
+unique_name_in_owner = true
+layout_mode = 2

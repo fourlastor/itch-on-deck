@@ -1,0 +1,106 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/components/top_bar.gd" id="1_top"]
+[ext_resource type="PackedScene" path="res://src/ui/components/glyph.tscn" id="2_glyph"]
+[ext_resource type="PackedScene" path="res://src/ui/components/pill_button.tscn" id="3_pill"]
+
+[sub_resource type="ButtonGroup" id="tabs"]
+
+[node name="TopBar" type="MarginContainer"]
+custom_minimum_size = Vector2(0, 76)
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 48
+script = ExtResource("1_top")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Tabs" type="HBoxContainer" parent="Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+
+[node name="L1" parent="Row/Tabs" instance=ExtResource("2_glyph")]
+layout_mode = 2
+kind = 4
+
+[node name="Gap1" type="Control" parent="Row/Tabs"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+
+[node name="Installed" type="Button" parent="Row/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"TabButton"
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("tabs")
+text = "Installed"
+
+[node name="Owned" type="Button" parent="Row/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"TabButton"
+toggle_mode = true
+button_group = SubResource("tabs")
+text = "Owned"
+
+[node name="Collections" type="Button" parent="Row/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"TabButton"
+toggle_mode = true
+button_group = SubResource("tabs")
+text = "Collections"
+
+[node name="Projects" type="Button" parent="Row/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"TabButton"
+toggle_mode = true
+button_group = SubResource("tabs")
+text = "My projects"
+
+[node name="Search" type="Button" parent="Row/Tabs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"TabButton"
+toggle_mode = true
+button_group = SubResource("tabs")
+text = "Search"
+
+[node name="Gap2" type="Control" parent="Row/Tabs"]
+layout_mode = 2
+
+[node name="R1" parent="Row/Tabs" instance=ExtResource("2_glyph")]
+layout_mode = 2
+kind = 5
+
+[node name="Spacer" type="Control" parent="Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Globals" type="HBoxContainer" parent="Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="Downloads" parent="Row/Globals" instance=ExtResource("3_pill")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Settings" parent="Row/Globals" instance=ExtResource("3_pill")]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Settings"
+glyph = 7

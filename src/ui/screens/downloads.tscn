@@ -1,0 +1,188 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/downloads.gd" id="1_downloads"]
+[ext_resource type="PackedScene" path="res://src/ui/components/screen_header.tscn" id="2_header"]
+[ext_resource type="PackedScene" path="res://src/ui/components/cover.tscn" id="3_cover"]
+[ext_resource type="PackedScene" path="res://src/ui/components/hint_bar.tscn" id="4_hints"]
+
+[node name="Downloads" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_downloads")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Header" parent="Column" instance=ExtResource("2_header")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Downloads"
+show_downloads = false
+
+[node name="Body" type="MarginContainer" parent="Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="Scroll" type="ScrollContainer" parent="Column/Body"]
+layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="Pad" type="MarginContainer" parent="Column/Body/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="List" type="VBoxContainer" parent="Column/Body/Scroll/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ActiveCaption" type="Label" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Downloading"
+
+[node name="Active" type="Button" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 191)
+layout_mode = 2
+theme_type_variation = &"CardButton"
+
+[node name="Margin" type="MarginContainer" parent="Column/Body/Scroll/Pad/List/Active"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Row" type="HBoxContainer" parent="Column/Body/Scroll/Pad/List/Active/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+
+[node name="ActiveCover" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row" instance=ExtResource("3_cover")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 151)
+layout_mode = 2
+
+[node name="Info" type="VBoxContainer" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ActiveTitle" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleCard"
+text = "Game"
+text_overrun_behavior = 3
+
+[node name="ActiveSub" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyMuted"
+text = "Install"
+text_overrun_behavior = 3
+
+[node name="Gap" type="Control" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Bar" type="ProgressBar" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+mouse_filter = 2
+max_value = 1.0
+step = 0.001
+show_percentage = false
+
+[node name="Gap2" type="Control" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Numbers" type="HBoxContainer" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 32
+
+[node name="Done" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info/Numbers"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyStrong"
+theme_override_font_sizes/font_size = 18
+
+[node name="Percent" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info/Numbers"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodyStrong"
+theme_override_font_sizes/font_size = 18
+
+[node name="Speed" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info/Numbers"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelSoft"
+
+[node name="TimeLeft" type="Label" parent="Column/Body/Scroll/Pad/List/Active/Margin/Row/Info/Numbers"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelSoft"
+
+[node name="WaitingCaption" type="Label" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Waiting"
+
+[node name="Waiting" type="VBoxContainer" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FailedCaption" type="Label" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelCaps"
+text = "Failed"
+
+[node name="Failed" type="VBoxContainer" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Empty" type="Label" parent="Column/Body/Scroll/Pad/List"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLeadMuted"
+text = "Nothing is downloading. Installs and updates you start appear here."
+autowrap_mode = 3
+
+[node name="HintBar" parent="Column" instance=ExtResource("4_hints")]
+unique_name_in_owner = true
+layout_mode = 2
