@@ -32,7 +32,8 @@ static func describe(run: Dictionary) -> String:
 			return str(run.get("note", "The app is not set up yet."))
 	for item: Dictionary in run.get("updated", []):
 		var version := str(item.get("version", ""))
-		parts.append("Updated %s%s." % [str(item.get("title", "")), (" to " + version) if version != "" else ""])
+		var how := str(item.get("how", ""))
+		parts.append("Updated %s%s%s." % [str(item.get("title", "")), (" to " + version) if version != "" else "", (" (%s)" % how) if how != "" else ""])
 	for item: Dictionary in run.get("skipped", []):
 		parts.append("Skipped %s: %s." % [str(item.get("title", "")), str(item.get("reason", ""))])
 	for item: Dictionary in run.get("left", []):

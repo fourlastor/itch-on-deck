@@ -674,13 +674,20 @@ read. Nothing of this is built.
   full upload of 28 MiB.
 - **What it no longer needs**: the copy being the page's newest build before the switch can be
   turned on, and the folder above the app registered as an install location.
-- **(to verify on a Deck, and with an account that does not own the page.)**
+- **The run says how an update arrived**, for the app and for games, after "Updated ...":
+  "(1 patch, 295.59 KiB)", "(the whole build, 28.34 MiB)" or "(repaired from the build)". It
+  reads that off butler's own log lines, which the daemon sends along while it works; once an
+  update is done butler's log of it is deleted, so nothing else would tell afterwards.
+- **On the Deck (2026-10-04, 23:39)** the app went from `7748e9b` to `d7687bd` by itself, under
+  the timer, and an earlier run left it alone because the app was open. That update was still
+  done by the old code. **(to verify: an update done by this code on a Deck, and with an
+  account that does not own the page.)**
 
 ### Still to verify
 
 - On a Deck: the controller after the changes above, Steam's on-screen keyboard, Steam's
   browser for the sign-in, adding a game to Steam, and whether a new entry and its images show
-  without restarting Steam.
+  without restarting Steam. (The app's own entry does show its images on the Deck now.)
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
 - The app's own update on a Deck, and with an account that does not own the page.

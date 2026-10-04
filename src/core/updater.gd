@@ -14,6 +14,7 @@ const WAIT_FOR_CONNECTION := 60.0
 const PROBE_URL := "https://api.itch.io/"
 
 var _host: Node
+var _trace: UpdateTrace
 
 
 func run(host: Node) -> int:
@@ -73,9 +74,11 @@ func _run(record: Dictionary) -> int:
 			record["skipped"].append({"title": title, "reason": "it was running"})
 			continue
 		print("Updating %s." % title)
+		var trace := _listen()
 		problem = await _apply(cave_id, choices[0])
+		_stop_listening()
 		if problem == "":
-			record["updated"].append({"title": title, "version": _version_of(choices[0])})
+			record["updated"].append({"title": title, "version": _version_of(choices[0]), "how": trace.summary()})
 		elif not await _online():
 			# Cut short by a lost connection: removed, and tried again next run.
 			record["skipped"].append({"title": title, "reason": "the connection went away"})
@@ -112,13 +115,33 @@ func _update_app(record: Dictionary) -> void:
 		record["skipped"].append({"title": title, "reason": "the app was open"})
 		return
 	print("Updating %s." % title)
+	var trace := _listen()
 	var problem: String = await SelfUpdate.apply(newest)
+	_stop_listening()
 	if problem == "":
-		record["updated"].append({"title": title, "version": str(newest.version)})
+		record["updated"].append({"title": title, "version": str(newest.version), "how": trace.summary()})
 	elif not await _online():
 		record["skipped"].append({"title": title, "reason": "the connection went away"})
 	else:
 		record["errors"].append("%s: %s" % [title, problem])
+
+
+## Reads butler's log while one update is applied, to tell how it arrived.
+func _listen() -> UpdateTrace:
+	_trace = UpdateTrace.new()
+	if not Butler.notified.is_connected(_on_notified):
+		Butler.notified.connect(_on_notified)
+	return _trace
+
+
+func _stop_listening() -> void:
+	if Butler.notified.is_connected(_on_notified):
+		Butler.notified.disconnect(_on_notified)
+
+
+func _on_notified(method: String, params: Dictionary) -> void:
+	if method == "Log" and _trace != null:
+		_trace.read(str(params.get("message", "")))
 
 
 ## True while a game started through butler, or any program out of the
