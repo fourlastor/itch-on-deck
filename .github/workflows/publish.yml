@@ -33,6 +33,11 @@ jobs:
       # ---- the build
       - name: Import resources
         run: ./Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux.x86_64 --quiet --headless --path . --import
+      - name: Test update helper
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          sh tools/build_update_helper.sh
+          python3 -m unittest discover -s tools/tests -v
       # every script and scene has to load before anything is published
       - name: Check
         run: ./Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux_x86_64/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_mono_linux.x86_64 --quiet --headless --audio-driver Dummy --path . -- check

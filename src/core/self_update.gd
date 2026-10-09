@@ -41,9 +41,8 @@ static func version() -> String:
 	return "dev"
 
 
-## The app's program file. The update run is started from a copy of it,
-## because a program file cannot be written while a program runs from it;
-## the copy is told in ITCH_ON_DECK_APP where the real one is (see Schedule).
+## ITCH_ON_DECK_APP also lets a run started by an older launcher identify
+## the installation. New launchers run the installed program directly.
 static func program() -> String:
 	var named := OS.get_environment("ITCH_ON_DECK_APP")
 	return named if named != "" else OS.get_executable_path()
@@ -52,12 +51,6 @@ static func program() -> String:
 ## The folder the app is in.
 static func folder() -> String:
 	return program().get_base_dir()
-
-
-## True when this process runs from the app's own program file, which butler
-## can then not replace.
-static func runs_from_own_file() -> bool:
-	return OS.get_executable_path() == program()
 
 
 ## A published build, as opposed to the project run from the editor.
@@ -110,14 +103,13 @@ static func has_update() -> bool:
 	return newest_version != "" and newest_version != version()
 
 
-## Has butler put the build `newest` (what `look` returned) into the app's
-## folder. Only the update run does this: nothing may be running from the
-## app's program file. Returns "" or why it did not work.
-static func apply(newest: Dictionary) -> String:
+## Prepare the update without writing to the installation. The native helper
+## calls Install.Perform after this process exits, using this saved operation.
+static func queue(newest: Dictionary) -> Dictionary:
 	var staging := Paths.cache_dir().path_join("self-update")
 	# Every try starts clean: what an earlier one left may be for another build.
 	await _wipe(staging)
-	var queued: Dictionary = await Butler.request("Install.Queue", {
+	return await Butler.request("Install.Queue", {
 		"noCave": true,
 		"installFolder": folder(),
 		"stagingFolder": staging,
@@ -126,14 +118,6 @@ static func apply(newest: Dictionary) -> String:
 		"build": newest.build,
 		"profileId": Session.profile_id(),
 	})
-	if Butler.failed(queued):
-		return Butler.error_text(queued)
-	var done: Dictionary = await Butler.request("Install.Perform", {
-		"id": str(queued.result.get("id", "")),
-		"stagingFolder": staging,
-	})
-	await _wipe(staging)
-	return Butler.error_text(done) if Butler.failed(done) else ""
 
 
 static func _wipe(path: String) -> void:
@@ -147,7 +131,10 @@ static func mark_window_open() -> void:
 
 
 static func mark_window_closed() -> void:
-	DirAccess.remove_absolute(Paths.data_dir().path_join(WINDOW_LOCK))
+	var path := Paths.data_dir().path_join(WINDOW_LOCK)
+	# A headless run must not remove a window's marker on its way out.
+	if FileAccess.file_exists(path) and int(FileAccess.get_file_as_string(path)) == OS.get_process_id():
+		DirAccess.remove_absolute(path)
 
 
 static func window_is_open() -> bool:

@@ -1,8 +1,8 @@
 class_name Updater
 extends RefCounted
 ## The scheduled update run (SPEC.md section 8), started by a systemd user
-## timer with no window: `itch-on-deck --headless -- update`, from a copy of
-## the app (see Schedule). It updates the installed games that are not
+## timer with no window: `itch-on-deck --headless -- update`, run by a small
+## native helper (see Schedule). It updates the installed games that are not
 ## pinned, and writes what it did to standard output (the journal) and to
 ## state.json.
 ##
@@ -15,6 +15,8 @@ const PROBE_URL := "https://api.itch.io/"
 
 var _host: Node
 var _trace: UpdateTrace
+var _app_job: Dictionary = {}
+var _helper_owns_lock := false
 
 
 func run(host: Node) -> int:
@@ -27,8 +29,19 @@ func run(host: Node) -> int:
 		"outcome": "nothing", "updated": [], "skipped": [], "left": [], "errors": [],
 	}
 	var code: int = await _run(run_record)
-	UpdateState.add_run(run_record)
-	print(UpdateState.describe(run_record))
+	if not _app_job.is_empty():
+		_app_job["record"] = run_record
+		if not Paths.write_text_atomic(OS.get_environment("ITCH_ON_DECK_UPDATE_JOB"), JSON.stringify(_app_job) + "\n"):
+			run_record["errors"].append("The app's queued update could not be handed to the helper.")
+			run_record["outcome"] = "failed"
+			code = 1
+			await SelfUpdate._wipe(str(_app_job["stagingFolder"]))
+			_app_job.clear()
+	if _app_job.is_empty():
+		UpdateState.add_run(run_record)
+		print(UpdateState.describe(run_record))
+	else:
+		print("The app's update is queued; the helper will apply it after this process exits.")
 	Butler.stop()
 	_release_lock()
 	return code
@@ -95,8 +108,7 @@ func _run(record: Dictionary) -> int:
 	return 0
 
 
-## The app itself (SelfUpdate): butler puts the page's newest build into the
-## app's folder when this copy is another version.
+## Queue the app's update for the helper. No installation writes occur here.
 func _update_app(record: Dictionary) -> void:
 	var title: String = SelfUpdate.GAME["title"]
 	var newest: Dictionary = await SelfUpdate.look()
@@ -106,24 +118,27 @@ func _update_app(record: Dictionary) -> void:
 		return
 	if not SelfUpdate.has_update():
 		return
-	if SelfUpdate.runs_from_own_file():
-		# butler cannot write a program file that is running, and this run is
-		# running from it. The timer starts the run from a copy (Schedule).
-		record["skipped"].append({"title": title, "reason": "this run was started from the app's own program file, which cannot replace itself"})
+	if not _helper_owns_lock or OS.get_environment("ITCH_ON_DECK_UPDATE_JOB") == "":
+		record["skipped"].append({"title": title, "reason": "this run was started without the update helper"})
 		return
-	if SelfUpdate.window_is_open() or Processes.any_under(SelfUpdate.folder()):
+	# The helper's argv[1] is this program's path; it is not an app window.
+	if SelfUpdate.window_is_open() or Processes.any_under(SelfUpdate.folder(), int(OS.get_environment("ITCH_ON_DECK_UPDATE_OWNER"))):
 		record["skipped"].append({"title": title, "reason": "the app was open"})
 		return
-	print("Updating %s." % title)
-	var trace := _listen()
-	var problem: String = await SelfUpdate.apply(newest)
-	_stop_listening()
-	if problem == "":
-		record["updated"].append({"title": title, "version": str(newest.version), "how": trace.summary()})
+	var queued: Dictionary = await SelfUpdate.queue(newest)
+	if not Butler.failed(queued):
+		_app_job = {
+			"id": str(queued.result.get("id", "")),
+			"stagingFolder": str(queued.result.get("stagingFolder", "")),
+			"installFolder": SelfUpdate.folder(),
+			"title": title, "version": str(newest.version),
+			"butler": Paths.butler_bin(ButlerInstall.VERSION), "db": Paths.db_path(),
+			"bandwidth": int(Config.get_value("bandwidth_kbps", 0)),
+		}
 	elif not await _online():
 		record["skipped"].append({"title": title, "reason": "the connection went away"})
 	else:
-		record["errors"].append("%s: %s" % [title, problem])
+		record["errors"].append("%s: %s" % [title, Butler.error_text(queued)])
 
 
 ## Reads butler's log while one update is applied, to tell how it arrived.
@@ -241,6 +256,10 @@ func _online() -> bool:
 # Making a folder either works or fails in one step, which makes it a lock.
 func _take_lock() -> bool:
 	var lock := Paths.update_lock_path()
+	var helper := int(OS.get_environment("ITCH_ON_DECK_UPDATE_OWNER"))
+	if helper > 0:
+		_helper_owns_lock = DirAccess.dir_exists_absolute("/proc/%d" % helper) and int(FileAccess.get_file_as_string(lock.path_join("pid"))) == helper
+		return _helper_owns_lock
 	Paths.ensure_dir(lock.get_base_dir())
 	if DirAccess.make_dir_absolute(lock) != OK:
 		var owner := int(FileAccess.get_file_as_string(lock.path_join("pid")))
@@ -258,6 +277,8 @@ func _take_lock() -> bool:
 
 
 func _release_lock() -> void:
+	if _helper_owns_lock:
+		return
 	var lock := Paths.update_lock_path()
 	DirAccess.remove_absolute(lock.path_join("pid"))
 	DirAccess.remove_absolute(lock)

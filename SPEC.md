@@ -178,6 +178,9 @@ from running on the same game at once **(to verify under our use)**.
 | `~/.local/share/itch-on-deck/db/butler.db` | butler's database: the profile, the caves, the cache |
 | `<install location>/downloads/` | partial downloads: butler's queue keeps them next to the games, on the same disk, not under the app's own folder |
 | `~/.local/share/itch-on-deck/state.json` | what the last update runs did |
+| `~/.local/share/itch-on-deck/update-run`, `update-helper` | timer launcher and the small native helper embedded in the exported app |
+| `~/.local/share/itch-on-deck/update.lock/` | the run owner's PID and, briefly, the queued self-update handoff |
+| `~/.local/share/itch-on-deck/update-run.lock` | an advisory lock held across the Godot process and the helper's install |
 | `~/.config/itch-on-deck/config.json` | settings: the schedule, the install locations, the profile in use |
 | `~/.config/systemd/user/itch-on-deck-update.{service,timer}` | written and enabled by the app |
 | `~/Games/itch/` | the default install location |
@@ -332,13 +335,20 @@ Nice=10
 IOSchedulingClass=idle
 ```
 
-`update-run` is a small script the app writes. It copies the app's program file to
-`~/.cache/itch-on-deck/update-run/` when the copy is not the same file any more, and starts the
-run from the copy with `--headless -- update`, telling it in `ITCH_ON_DECK_APP` where the app
-really is. The run cannot be started from the app's own file: it may have to replace that file,
-and Linux does not let a file be written while a program runs from it (section 14, On a Deck).
-The app writes the units and the script again at its start when they are not what it would
-write now, which is so after it was moved to another folder.
+`update-run` is a small script the app writes. It starts `update-helper`, a statically linked
+Rust program embedded in the Godot export and extracted beside the launcher. The helper
+holds the run's lock and starts the installed app directly with `--headless -- update`. Games
+are updated as before. An app update is prepared with `Install.Queue`, and its operation ID,
+staging path and run record are written into `update.lock/self-update.json`. After Godot exits,
+the helper checks again that the app is closed, starts its own butler daemon and calls
+`Install.Perform`. The helper then records the combined result, cleans staging and releases
+the lock. A direct `-- update` without the helper can update games but skips self-updating.
+
+Linux forbids writing into a running executable; butler's patcher writes files in place.
+The old launcher worked around that by copying the whole exported app. The helper eliminates
+that copy and preserves the installed folder's butler receipt and incremental patch path.
+It needs no Python or additional system package at runtime. The app refreshes the units,
+launcher and helper when they change, and removes the old full-app cache during migration.
 
 ```ini
 # itch-on-deck-update.timer
@@ -368,7 +378,10 @@ What a run does:
    connection there it is an error, and the run ends as failed so that systemd shows it. What
    a removed download had fetched is deleted by butler a moment later; a run that ends before
    that leaves the folder, and the next run, or the app at its start, removes it.
-6. Write to `state.json` what was updated, skipped and failed, for the app to show.
+6. If self-updating is enabled and a newer app build is available, queue it for the native
+   helper. The helper applies it after Godot exits and owns the lock until it finishes.
+7. Write to `state.json` what was updated, skipped and failed, for the app to show. When an app
+   update is queued, the helper writes one combined record after the install finishes.
 
 A game being updated when the user starts it: butler's lock on the install folder makes the
 launch wait for the update to finish **(to verify)**. The app should show that it is waiting.
@@ -442,10 +455,10 @@ the app's current butler and runs `butler launch`, so a butler update does not b
 6. **Removed SD card.** What butler does with caves whose install location is gone.
 7. **Updating the app itself.** Decided: the app is the page `fourlastor/itch-on-deck`, published
    by a GitHub Actions workflow, and updates through butler, under a setting of its own, apart
-   from the games' schedule. The update run, which is started from a copy of the app (section
-   8), reads the page's uploads, and when the newest build is another version than the copy
-   has butler install that build into the folder the app is in (`Install.Queue` with `noCave`,
-   then `Install.Perform`), only while the app's window is closed (section 14).
+   from the games' schedule. The update run reads the page's uploads and queues a newer build
+   (`Install.Queue` with `noCave`). After the run exits, the native helper has its own butler
+   daemon install that build into the same app folder (`Install.Perform`), only while the app
+   is closed. No full copy of the exported app is needed (section 8).
 8. **The name.** "itch on Deck" uses itch.io's name. Fine for a personal tool; check their brand
    rules before publishing it.
 
@@ -683,10 +696,46 @@ read. Nothing of this is built.
   "(1 patch, 295.59 KiB)", "(the whole build, 28.34 MiB)" or "(repaired from the build)". It
   reads that off butler's own log lines, which the daemon sends along while it works; once an
   update is done butler's log of it is deleted, so nothing else would tell afterwards.
-- **On the Deck (2026-10-04, 23:39)** the app went from `7748e9b` to `d7687bd` by itself, under
-  the timer, and an earlier run left it alone because the app was open. That update was still
-  done by the old code. **(to verify: an update done by this code on a Deck, and with an
-  account that does not own the page.)**
+- **On the Deck (2026-10-04)** the app went from `7748e9b` to `d7687bd` by itself at 23:39,
+  under the timer, and an earlier run left it alone because the app was open. That update was
+  still done by the old code. The two after it were done by this code: `d7687bd` to `8013f31`
+  at 23:53, and `8013f31` to `6cb6887` at 23:56, which the journal reports as
+  "(1 patch, 236.26 KiB)". **(to verify: with an account that does not own the page.)**
+
+### Self-updates without copying the app
+
+2026-10-09, on a Linux PC, with a Godot 4.7.2 export and real butler v15.31.0.
+
+- The timer's Rust helper is 533,048 bytes (about 521 KiB), statically linked with musl and
+  embedded in the export. It is extracted beside `update-run`; no additional runtime package
+  is installed. Refreshing the launcher removes the old full-app cache.
+- Thirteen process-level regression tests cover an actual write-open of the exited ELF app,
+  lock ownership through the install, overlapping runs, a window/process appearing before
+  install, daemon errors and malformed responses, interruption, connection loss, stale locks,
+  staging cleanup and preservation of game failures/history. Killing the helper also leaves
+  its lock held by its running child. CI runs these before publishing.
+- The exported app loaded all 170 scripts/scenes with zero failures. A fresh temporary
+  installation signed into a new butler database, queued its own update, exited, and was
+  updated by the helper to published build `a3be715`. The first update fetched the whole
+  28.35 MiB upload and wrote `.itch/receipt.json.gz`; the resulting executable also loaded
+  successfully. The real account's database, installed games, settings and timer were not
+  modified.
+- An exported headless run with another live window's PID marker skipped self-updating and
+  preserved that marker. The helper's own command-line app path is excluded from the running
+  app check by its verified PID.
+- A second scratch installation started at published build 2065197. The same helper applied
+  five real patches totaling 378.14 KiB to reach `a3be715`; its executable matched the full
+  published build byte for byte. Both live tests recorded their result, removed staging and
+  released the lock, without making a full-app runner cache.
+- Building requires Rust with `rustup target add x86_64-unknown-linux-musl`. Reproduce the
+  native tests with `sh tools/build_update_helper.sh` followed by
+  `python3 -m unittest discover -s tools/tests -v`. The opt-in live test is
+  `tools/test_self_update_live.py --app <export> --butler <butler> --source-db <saved db>
+  --patch-from-build 2065197`; the export must carry a version other than `dev` and the newest
+  published version. It reads a saved credential and updates only new temporary installations.
+  These Python scripts are test tools; they are excluded from the exported app.
+- **Still to verify on a physical Steam Deck:** this native-helper handoff and migration from
+  the previous timer launcher. The earlier Deck results above used the copied-app launcher.
 
 ### Still to verify
 
@@ -695,6 +744,6 @@ read. Nothing of this is built.
   without restarting Steam. (The app's own entry does show its images on the Deck now.)
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
-- The app's own update on a Deck, and with an account that does not own the page.
+- The app's own update with an account that does not own the page.
 - The lists and the update run with no connection, and a download across a sleep.
 - Sign-in with a hand-made API key (the same request the browser sign-in ends with).

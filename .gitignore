@@ -5,6 +5,9 @@
 # Exported builds, and the version file written for them
 /build/
 /version.txt
+/src/core/update_helper.bin
+/tools/update-helper/target/
+__pycache__/
 
 # The editor the publish workflow unpacks at the repo root
 /Godot_v*/

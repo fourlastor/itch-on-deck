@@ -23,6 +23,7 @@ fi
 # compares it with the page's newest build before it lets butler adopt its
 # folder. A build made by hand is "dev" and never updates itself.
 echo "${VERSION:-dev}" > version.txt
+sh tools/build_update_helper.sh
 
 OUT=build/linux
 rm -rf "$OUT"
@@ -33,5 +34,6 @@ test -x "$OUT/itch-on-deck.x86_64"
 # The fonts ship under the SIL Open Font License, which has to travel with them;
 # the engine's own notices are written by the app itself.
 cp assets/fonts/OFL-*.txt "$OUT/licenses/"
+cp tools/update-helper/THIRD_PARTY_LICENSES "$OUT/licenses/UPDATE-HELPER.txt"
 "$OUT/itch-on-deck.x86_64" --headless --audio-driver Dummy -- licenses "$(pwd)/$OUT/licenses/GODOT.txt"
 ls -l "$OUT" "$OUT/licenses"

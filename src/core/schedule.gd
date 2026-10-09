@@ -7,24 +7,16 @@ extends RefCounted
 const SERVICE := "itch-on-deck-update.service"
 const TIMER := "itch-on-deck-update.timer"
 
-## What the timer starts. The run may have to replace the app's own program
-## file, and Linux refuses to write a file a program is running from ("text
-## file busy"). So the run is not started from that file but from a copy of
-## it, renewed whenever the app's file has changed.
+## The native helper runs the installed app directly and waits for it to
+## exit before having a fresh butler daemon apply a queued self-update.
 const LAUNCHER := """#!/bin/sh
-# itch on Deck: starts the update run from a copy of the app, so that the
-# run can replace the app's own program file. The app writes this file; the
-# update timer starts it with the app's program file as its argument.
+# itch on Deck: the helper owns the update run, including its final self-update.
 APP="$1"
 if [ ! -x "$APP" ]; then
 	echo "itch on Deck: $APP is not there. Open the app once: it writes this job again." >&2
 	exit 1
 fi
-COPY="${XDG_CACHE_HOME:-$HOME/.cache}/itch-on-deck/update-run/$(basename "$APP")"
-if [ ! -e "$COPY" ] || [ "$APP" -nt "$COPY" ] || [ "$APP" -ot "$COPY" ]; then
-	mkdir -p "$(dirname "$COPY")" && cp -p "$APP" "$COPY.new" && mv -f "$COPY.new" "$COPY" || exit 1
-fi
-ITCH_ON_DECK_APP="$APP" exec "$COPY" --headless -- update
+exec "$(dirname "$0")/update-helper" "$APP"
 """
 const CALENDAR := {"15min": "*:0/15", "1h": "hourly", "6h": "00/6:00", "daily": "daily"}
 const LABELS := {"off": "Off", "15min": "Every 15 minutes", "1h": "Every hour", "6h": "Every 6 hours", "daily": "Once a day"}
@@ -47,6 +39,7 @@ static func apply() -> String:
 	var dir := Paths.systemd_user_dir()
 	if not _write_launcher():
 		return "The update run's launcher could not be written to %s." % Paths.display(Paths.update_run_script())
+	_remove_copy()
 	if not Paths.write_text_atomic(dir.path_join(SERVICE), service_text()):
 		return "The unit files could not be written to %s." % Paths.display(dir)
 	if not Paths.write_text_atomic(dir.path_join(TIMER), timer_text(calendar)):
@@ -66,7 +59,7 @@ static func apply() -> String:
 static func keep_current() -> void:
 	if Config.schedule() == "off" and not SelfUpdate.enabled():
 		return
-	if _text_of(Paths.systemd_user_dir().path_join(SERVICE)) != service_text() or _text_of(Paths.update_run_script()) != LAUNCHER:
+	if _text_of(Paths.systemd_user_dir().path_join(SERVICE)) != service_text() or _text_of(Paths.update_run_script()) != LAUNCHER or _helper_changed():
 		apply()
 
 
@@ -90,8 +83,8 @@ static func next_run() -> int:
 	return int(as_utc) - int(zone.get("bias", 0)) * 60
 
 
-## How systemd starts the update run: the launcher, which runs a copy of
-## this program with no window. From the project's sources it is the editor
+## How systemd starts the update run: the launcher, which runs the installed
+## program with no window. From the project's sources it is the editor
 ## that runs, and nothing ever replaces that.
 static func command() -> String:
 	if OS.has_feature("editor"):
@@ -128,6 +121,8 @@ WantedBy=timers.target
 
 
 static func _write_launcher() -> bool:
+	if not OS.has_feature("editor") and not _write_helper():
+		return false
 	var path := Paths.update_run_script()
 	if _text_of(path) != LAUNCHER and not Paths.write_text_atomic(path, LAUNCHER):
 		return false
@@ -135,8 +130,29 @@ static func _write_launcher() -> bool:
 	return FileAccess.set_unix_permissions(path, 493) == OK
 
 
-## The run's copy of the app is as large as the app; with the timer off
-## nothing needs it.
+static func _helper_changed() -> bool:
+	if OS.has_feature("editor"):
+		return false
+	return FileAccess.get_sha256(Paths.update_helper_bin()) != FileAccess.get_sha256("res://src/core/update_helper.bin")
+
+
+static func _write_helper() -> bool:
+	var path := Paths.update_helper_bin()
+	if _helper_changed():
+		var bytes := FileAccess.get_file_as_bytes("res://src/core/update_helper.bin")
+		if bytes.is_empty() or not Paths.ensure_dir(path.get_base_dir()):
+			return false
+		var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
+		if file == null:
+			return false
+		file.store_buffer(bytes)
+		file.close()
+		if FileAccess.set_unix_permissions(path + ".tmp", 493) != OK or DirAccess.rename_absolute(path + ".tmp", path) != OK:
+			return false
+	return FileAccess.set_unix_permissions(path, 493) == OK
+
+
+## Retire the previous launcher's full copy of the app.
 static func _remove_copy() -> void:
 	var dir := Paths.update_run_copy_dir()
 	if not DirAccess.dir_exists_absolute(dir):

@@ -10,14 +10,15 @@ extends RefCounted
 
 ## The IDs of the processes whose program file, or whose first arguments
 ## (a script handed to an interpreter), lie under `folder`.
-static func under(folder: String) -> PackedInt32Array:
+## Self-update checks exclude the verified helper, whose argument names the app.
+static func under(folder: String, ignore_pid: int = 0) -> PackedInt32Array:
 	var out: PackedInt32Array = []
 	if folder == "":
 		return out
 	var prefix := folder.trim_suffix("/") + "/"
 	var me := OS.get_process_id()
 	for name in DirAccess.get_directories_at("/proc"):
-		if not name.is_valid_int() or int(name) == me:
+		if not name.is_valid_int() or int(name) == me or int(name) == ignore_pid:
 			continue
 		var dir := DirAccess.open("/proc/" + name)
 		if dir == null:
@@ -34,8 +35,8 @@ static func under(folder: String) -> PackedInt32Array:
 	return out
 
 
-static func any_under(folder: String) -> bool:
-	return not under(folder).is_empty()
+static func any_under(folder: String, ignore_pid: int = 0) -> bool:
+	return not under(folder, ignore_pid).is_empty()
 
 
 static func _command_line(path: String) -> PackedStringArray:
