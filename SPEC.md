@@ -624,6 +624,11 @@ Only the part "On a Deck" below was tried on a Deck.
   its action being pressed. Godot's own focus moves guard against that; the shelf and the
   choice between a few values read left and right themselves and did not. Now one push is one
   step, and a held stick repeats like a held D-pad.
+- **Confirmed on the Deck afterwards (2026-10-05):** one push of the stick moves one game; the
+  app's entry shows its library images in Gaming Mode; an entry removed from Steam by the app
+  loses its images at once and leaves the library when Steam exits (switching to Desktop Mode
+  was enough). The small icon of an entry is not shown, and is left that way for this
+  version: the images Gaming Mode uses are there.
 - **There was no way out of the app with a controller.** B on the first screen (the lists, the
   sign-in, the fetching of butler) now asks whether to close the app.
 
