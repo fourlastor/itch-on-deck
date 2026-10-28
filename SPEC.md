@@ -758,12 +758,15 @@ read. Nothing of this is built.
   (`Schedule.keep_current()` writes `update-run` and `update-helper` and removes the old copy
   in `~/.cache/itch-on-deck/update-run/`); a run of the timer does not. The same day a game
   installed by the app was updated there with this build.
-- **Still to verify on the Deck:** that move (`~/.local/share/itch-on-deck/update-helper`
-  present, the old copy gone), and the helper applying an update of the app, which needs a
-  build newer than `74ba76e` on the page. A game's update does not reach that step: the helper
-  starts the app's run, the run updates games itself as before, and the helper installs only
-  an update of the app that the run left for it. The journal then shows the helper's
-  "Updating itch on Deck." before "Updated itch on Deck to ...".
+- **Confirmed on the Deck (2026-10-28):** the first timer run after `b9e6a19` was published
+  logged, from the app, "The app's update is queued; the helper will apply it after this
+  process exits."; then, from the helper, "Updating itch on Deck." and five seconds later
+  "Updated itch on Deck to b9e6a19 (1 patch, 661.94 KiB)." So the timer had moved over to the
+  helper, and the helper applies the app's update there, as a patch. A game's update does not
+  test this step: the helper starts the app's run, the run updates games itself as before,
+  and the helper installs only an update of the app that the run left for it. The helper's
+  own butler daemon also puts three of its debug lines in the journal ("Current DB version
+  is ...", "Latest migration is ...", "No migrations to run").
 
 ### Launch options
 
