@@ -9,6 +9,7 @@ const PROFILE := {"id": 1, "user": {"id": 1, "username": "demo", "displayName": 
 var _games: Dictionary = {}
 var _caves: Array = []
 var _pinned: Dictionary = {}
+var _settings: Dictionary = {}
 
 
 func _init() -> void:
@@ -40,6 +41,7 @@ func _init() -> void:
 	_cave("paper", 64, 900, 1150431)
 	_cave("sixteen", 41, 0, 0)
 	_pinned["cave-paper"] = true
+	_settings["cave-hollow"] = {"commandTemplate": "--fullscreen"}
 
 
 func handle(method: String, params: Dictionary) -> Dictionary:
@@ -114,6 +116,18 @@ func handle(method: String, params: Dictionary) -> Dictionary:
 			]})
 		"Caves.SetPinned":
 			_pinned[str(params.get("caveId", ""))] = bool(params.get("pinned", false))
+			return _ok({})
+		"Caves.GetSettings":
+			return _ok({"settings": _settings.get(str(params.get("caveId", "")), {}).duplicate()})
+		"Caves.SetSettings":
+			var settings: Dictionary = params.get("settings", {})
+			var template := str(settings.get("commandTemplate", ""))
+			# Two of the checks butler makes, with its words.
+			if template.count("\"") % 2 == 1:
+				return {"error": {"code": -32603, "message": "settings.commandTemplate: invalid command template: Unterminated double-quoted string"}}
+			if template.split(" ").count("%command%") > 1:
+				return {"error": {"code": -32603, "message": "settings.commandTemplate: command template may contain at most one standalone %command% token"}}
+			_settings[str(params.get("caveId", ""))] = settings
 			return _ok({})
 		"Uninstall.Perform":
 			var cave_id := str(params.get("caveId", ""))

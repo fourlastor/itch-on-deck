@@ -10,6 +10,7 @@ extends RefCounted
 ##     itch-on-deck --headless -- probe updates              look for updates
 ##     itch-on-deck --headless -- probe update <cave id>     apply a known update
 ##     itch-on-deck --headless -- probe launch <cave id> [seconds] [plain]
+##     itch-on-deck --headless -- probe options <cave id> [set <text> | clear]
 ##     itch-on-deck --headless -- probe uninstall <cave id>
 ##     itch-on-deck --headless -- probe steam <cave id>      add to Steam
 ##     itch-on-deck --headless -- probe unsteam <cave id>    remove from Steam
@@ -26,7 +27,7 @@ const SAMPLE_GAME := 3
 
 static func run(args: PackedStringArray, host: Node) -> int:
 	if args.size() < 2:
-		printerr("probe: which one? caves, install, older, updates, update, launch, uninstall, steam, unsteam, self, key, unlisted")
+		printerr("probe: which one? caves, install, older, updates, update, launch, options, uninstall, steam, unsteam, self, key, unlisted")
 		return 2
 	if args[1] == "key":
 		# Needs neither butler nor the saved login.
@@ -56,6 +57,8 @@ static func run(args: PackedStringArray, host: Node) -> int:
 			code = await _update(host, args[2])
 		"launch":
 			code = await _launch(host, args[2], float(args[3]) if args.size() > 3 else 8.0, args.size() > 4 and args[4] == "plain")
+		"options":
+			code = await _options(args[2], args.slice(3))
 		"uninstall":
 			code = await _uninstall(args[2])
 		"steam", "unsteam":
@@ -188,6 +191,23 @@ static func _launch(host: Node, cave_id: String, seconds: float, plain: bool = f
 	print("launch returned after %.1f s: %s" % [(Time.get_ticks_msec() - started) / 1000.0, problem if problem != "" else "no error"])
 	await _caves()
 	return 0 if problem == "" else 1
+
+
+## A game's launch options: shows them, or saves new ones the way the game
+## screen does, then shows every setting butler keeps for the install.
+static func _options(cave_id: String, change: PackedStringArray) -> int:
+	var problem := ""
+	if change.size() > 1 and change[0] == "set":
+		problem = await GameOps.set_launch_options(cave_id, " ".join(change.slice(1)))
+	elif change.size() > 0 and change[0] == "clear":
+		problem = await GameOps.set_launch_options(cave_id, "")
+	if problem != "":
+		print("not saved: ", problem)
+	var got: Dictionary = await GameOps.launch_options(cave_id)
+	print("launch options: ", got.error if got.error != "" else (got.text if got.text != "" else "none"))
+	var res: Dictionary = await Butler.request("Caves.GetSettings", {"caveId": cave_id})
+	print("butler's settings for the install: ", JSON.stringify(res.get("result", res)))
+	return 0 if problem == "" and got.error == "" else 1
 
 
 static func _uninstall(cave_id: String) -> int:

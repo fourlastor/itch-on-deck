@@ -120,6 +120,11 @@ with no window (through `butler launch`), and it can add games to Steam as short
 
 - **R15** A game can be started from the app. The app then uses as little as it can until the game
   exits. butler records the play time.
+- **R15a** An installed game has launch options, typed as in Steam: words added after the game's
+  own command (`--fullscreen`); `NAME=value` words at the start set environment variables; and
+  `%command%` marks where the game's command goes, for a program that runs it
+  (`gamemoderun %command%`). They apply to every start, from the app and from the game's Steam
+  entry, and stay through updates. Uninstalling the game forgets them.
 - **R16** An installed game has an "Add to Steam" button. Pressing it puts the game in the Steam
   library as a non-Steam game, with nothing left to do by hand in Steam: the game's title as the
   name, its cover as the artwork where Steam allows, and a launch that needs neither the app nor
@@ -228,6 +233,7 @@ work with no itch app installed, and a shared database ties both to the same but
 | Pin a version | `Caves.SetPinned` | A pinned cave is left out of update checks. |
 | Play from the app | `Launch` | `allowedStrategies: [native]` keeps HTML5, shell and URL launches out. Notifications `LaunchRunning`, `LaunchExited`. |
 | Play from Steam | `butler --json --dbpath <db> launch --cave <id>` | Not the daemon: a command. Exit code 3 means the launch needs a full client. |
+| Launch options | `Caves.GetSettings`, `Caves.SetSettings` | The install's `commandTemplate`, which `Launch` and `butler launch` apply when they are given none. `SetSettings` replaces the whole settings object, so the app reads it first and changes only that field. |
 | Add to Steam | `steam://addnonsteamgame/<path>`, or Steam's `shortcuts.vdf` | Not butler: section 7. |
 | Limit bandwidth | `Network.SetBandwidthThrottle` | A possible setting. |
 
@@ -295,6 +301,12 @@ What the button makes is a non-Steam shortcut:
 The launcher runs `butler launch` for that cave. The game starts with no app window, butler
 records its play time, and Steam's overlay and controller settings apply to it as to any non-Steam
 game. The shortcut names the cave, not a build, so updating the game does not change it.
+
+Steam splits the command it is handed: the entry's target is `run-game`, and its launch options
+hold the cave ID, in quotes. The ID has to stay there. It is how `run-game` knows which install
+to start, and how the app recognises the entry as the game's. Options for the game itself are
+set in the app (R15a), which butler applies to this launch as well; `run-game` passes nothing
+but the ID on, so words added after it in Steam's field are ignored.
 
 There are two ways to make Steam take the shortcut. Milestone 0 tries both on a Deck:
 
@@ -394,7 +406,7 @@ Visual design is a separate step, with mock-ups first. What the screens have to 
 |---|---|
 | Sign in | The QR code and the short code, or the field for an API key; Add itch on Deck to Steam. |
 | Lists | Tabs for Installed, Owned, Collections, My projects, Search. A grid or a list of covers and titles, each with its state (installed, update known, not installable here, draft). |
-| Game | Cover, title, short text, uploads, size, install location; Install, Play, Add to Steam (then In Steam, with Remove from Steam), Check for updates, Pin this version, Uninstall. |
+| Game | Cover, title, short text, uploads, size, install location; Install, Play, Launch options, Add to Steam (then In Steam, with Remove from Steam), Check for updates, Pin this version, Uninstall. A notice about the last action takes the short text's place while it is shown. |
 | Downloads | What is downloading and waiting, with progress, speed and time left; Cancel. |
 | Settings | The schedule and its interval, install locations with free space, bandwidth limit, butler's version, the last update runs, Add itch on Deck to Steam, Sign out. |
 
@@ -739,14 +751,58 @@ read. Nothing of this is built.
   --patch-from-build 2065197`; the export must carry a version other than `dev` and the newest
   published version. It reads a saved credential and updates only new temporary installations.
   These Python scripts are test tools; they are excluded from the exported app.
-- **Still to verify on a physical Steam Deck:** this native-helper handoff and migration from
-  the previous timer launcher. The earlier Deck results above used the copied-app launcher.
+- **On the Deck (2026-10-21, reported by the user):** the app is on `74ba76e`, the first
+  published build with the helper and still the newest. Every build before it lacks the
+  helper, so the helper did not apply that update, and the earlier Deck results above used the
+  copied-app launcher. Opening the app is what moves the timer over to the helper
+  (`Schedule.keep_current()` writes `update-run` and `update-helper` and removes the old copy
+  in `~/.cache/itch-on-deck/update-run/`); a run of the timer does not. The same day a game
+  installed by the app was updated there with this build.
+- **Still to verify on the Deck:** that move (`~/.local/share/itch-on-deck/update-helper`
+  present, the old copy gone), and the helper applying an update of the app, which needs a
+  build newer than `74ba76e` on the page. A game's update does not reach that step: the helper
+  starts the app's run, the run updates games itself as before, and the helper installs only
+  an update of the app that the run left for it. The journal then shows the helper's
+  "Updating itch on Deck." before "Updated itch on Deck to ...".
+
+### Launch options
+
+2026-10-28, on a Linux PC, with butler v15.31.0 and the installed Sands of the Duel, at the
+user's request ("being able to add launch options (ie a game with `--fullscreen` parameter)").
+
+- **butler already has them.** An install has settings of its own (`Caves.GetSettings`,
+  `Caves.SetSettings`), and one of them, `commandTemplate`, is Steam's launch options: words
+  split as a shell would, `NAME=value` words at the start set variables, and a standalone
+  `%command%` places the game's command. `Launch` applies it when the request carries none, and
+  so does `butler launch`. butler's published API documentation still shows the old `Launch`;
+  this is in its source (`butlerd/types.go`, `butlerd/command_template.go`).
+- **Seen to reach the game both ways.** Under a virtual display, with
+  `IOD_TEST=yes %command% --audio-driver Dummy --rendering-driver opengl3 -- "--iod-test=two words"`
+  saved for the install, the game's process had exactly those arguments, the quoted words as
+  one, and the variable in its environment: started by `run-game` as a Steam entry starts it,
+  and by the daemon's `Launch` as the app's Play does.
+- **butler checks the text when it is saved.** An unclosed quote and a second `%command%` are
+  refused with a reason, which the app words in its own way and shows in the dialog.
+- **Saving keeps the other settings.** `Caves.SetSettings` replaces them all, so the app reads
+  them first. Tried with a sandbox choice and a launch target set beforehand: both were still
+  there after the options were saved and after they were removed.
+- **An update keeps them**, from butler's source: an install or update reads the install's
+  record, settings included, before it starts and writes it back when it ends. A change made
+  while an update runs would be lost that way, so the row is locked while the game is in the
+  download queue. Uninstalling removes the record and the options with it.
+- **On the game screen** the row comes after Play and shows the options, or "None". A dialog
+  takes the text: typing starts at once, with Steam's keyboard in Gaming Mode; Enter, or A
+  while typing, saves; B stops typing, and a second B closes the dialog. Pressed through with
+  a controller (`--pad=`) in demo mode, not yet on the Deck. Godot 4.7's `unedit()` does not
+  send `editing_toggled`, so whatever stops the typing redraws the hints itself.
 
 ### Still to verify
 
 - On a Deck: the controller after the changes above, Steam's on-screen keyboard, Steam's
   browser for the sign-in, adding a game to Steam, and whether a new entry and its images show
   without restarting Steam. (The app's own entry does show its images on the Deck now.)
+- Launch options on a Deck: typing them with Steam's keyboard, and a game started from its
+  Steam entry getting them.
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
 - The app's own update with an account that does not own the page.

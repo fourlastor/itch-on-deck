@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://assets/icons/pin.svg" id="11_pin"]
 [ext_resource type="Texture2D" path="res://assets/icons/trash.svg" id="12_trash"]
 [ext_resource type="Texture2D" path="res://assets/icons/info.svg" id="13_info"]
+[ext_resource type="Texture2D" path="res://assets/icons/options.svg" id="14_options"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -170,6 +171,12 @@ unique_name_in_owner = true
 layout_mode = 2
 title = "Play"
 symbol = ExtResource("7_play")
+
+[node name="Options" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
+unique_name_in_owner = true
+layout_mode = 2
+title = "Launch options"
+symbol = ExtResource("14_options")
 
 [node name="Update" parent="Column/Body/Columns/Right/Actions" instance=ExtResource("5_action")]
 unique_name_in_owner = true

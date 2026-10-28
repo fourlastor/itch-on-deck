@@ -9,6 +9,7 @@ const ICON_STEAM_ADD := preload("res://assets/icons/steam_add.svg")
 const ICON_STEAM_IN := preload("res://assets/icons/steam_in.svg")
 const BLUE := Color("6db6f2")
 const LIGHT := Color("f4efe8")
+const OPTIONS_BODY := "Added to the game's command each time it starts, here or from Steam. As in Steam, NAME=value at the start sets a variable, and %command% marks where the game's command goes."
 
 var entry: GameEntry
 
@@ -16,16 +17,21 @@ var _from := "Back"
 var _notice := ""
 var _busy := false
 var _page_uploads: Array = []
+## The launch options of the install `_options_cave`, once read.
+var _options := ""
+var _options_cave := ""
+var _options_read := false
 
 @onready var _header: Control = %Header
 @onready var _hints: HintBar = %HintBar
 @onready var _facts: Array[Node] = [%Fact1, %Fact2, %Fact3, %Fact4]
-@onready var _rows: Array[ActionRow] = [%Play, %Update, %Install, %Steam, %Pin, %Uninstall]
+@onready var _rows: Array[ActionRow] = [%Play, %Options, %Update, %Install, %Steam, %Pin, %Uninstall]
 
 
 func _ready() -> void:
 	_header.back_pressed.connect(Nav.pop)
 	%Play.pressed.connect(_on_play)
+	%Options.pressed.connect(edit_options)
 	%Update.pressed.connect(_on_update)
 	%Install.pressed.connect(start_install)
 	%Steam.pressed.connect(_on_steam)
@@ -44,6 +50,8 @@ func open(args: Dictionary) -> void:
 	_show()
 	if GameText.blocked_reason(entry) != "" and entry.owned:
 		_read_page_uploads()
+	if entry.is_installed():
+		_read_options()
 
 
 func first_focus() -> Control:
@@ -64,6 +72,8 @@ func _on_state_changed() -> void:
 	entry = Library.entry_for(entry.game)
 	entry.owned = owned
 	_show()
+	if entry.is_installed() and entry.cave_id() != _options_cave:
+		_read_options()
 	if Nav.dialog_open():
 		return
 	if not is_instance_valid(get_viewport().gui_get_focus_owner()) or not get_viewport().gui_get_focus_owner().is_visible_in_tree():
@@ -82,7 +92,6 @@ func _show() -> void:
 	%Cover.show_entry(entry, false, true)
 	%Title.text = entry.title()
 	%ShortText.text = entry.short_text()
-	%ShortText.visible = entry.short_text() != ""
 	for child in %Chips.get_children():
 		child.queue_free()
 	for kind in _chips():
@@ -94,8 +103,7 @@ func _show() -> void:
 		_facts[i].visible = i < facts.size()
 		if _facts[i].visible:
 			_facts[i].setup(facts[i][0], facts[i][1], i == facts.size() - 1)
-	%Notice.visible = _notice != ""
-	%NoticeText.text = _notice
+	_say(_notice)
 	_show_blocked()
 	_show_actions()
 	_show_hints()
@@ -166,6 +174,7 @@ func _read_page_uploads() -> void:
 func _show_actions() -> void:
 	var installed := entry.is_installed()
 	%Play.visible = installed
+	%Options.visible = installed
 	%Update.visible = installed
 	%Steam.visible = installed and Steam.is_available()
 	%Pin.visible = installed
@@ -174,6 +183,15 @@ func _show_actions() -> void:
 	%Install.visible = not installed and (entry.can_install() or not download.is_empty())
 	if installed:
 		%Play.set_row("Play", "Played %s" % Format.play_time(entry.seconds_run()).to_lower() if entry.seconds_run() > 0 else "Not played yet")
+		# An update in progress writes the install's settings back as they
+		# were when it started, so a change made meanwhile would be lost.
+		%Options.disabled = not download.is_empty()
+		if not download.is_empty():
+			%Options.set_row("Launch options", "Can be changed after the update")
+		elif _options_read:
+			%Options.set_row("Launch options", _options if _options != "" else "None")
+		else:
+			%Options.set_row("Launch options", "")
 		if not download.is_empty():
 			%Update.set_row("Updating", _download_state(download))
 			%Update.symbol_tint = BLUE
@@ -220,10 +238,13 @@ func _show_hints() -> void:
 	_hints.set_hints(hints, right)
 
 
+## A notice takes the place of the short text while it is shown: with every
+## row of an installed game on screen there is no room for both.
 func _say(text: String) -> void:
 	_notice = text
 	%Notice.visible = text != ""
 	%NoticeText.text = text
+	%ShortText.visible = text == "" and entry.short_text() != ""
 
 
 # --- actions ----------------------------------------------------------------
@@ -231,6 +252,46 @@ func _say(text: String) -> void:
 func _on_play() -> void:
 	_say("")
 	Nav.push("running", {"entry": entry})
+
+
+## butler keeps the launch options with the install, and its list of
+## installs does not carry them, so they are read when the game is shown.
+func _read_options() -> void:
+	var cave_id := entry.cave_id()
+	_options_cave = cave_id
+	_options = ""
+	_options_read = false
+	var got: Dictionary = await GameOps.launch_options(cave_id)
+	if entry == null or entry.cave_id() != cave_id or not is_inside_tree():
+		return
+	_options = got.text
+	_options_read = got.error == ""
+	_show_actions()
+
+
+## Also used by the screenshot helper.
+func edit_options() -> void:
+	if _busy:
+		return
+	_busy = true
+	var cave_id := entry.cave_id()
+	var text := _options
+	var problem := ""
+	while true:
+		var typed: Variant = await Nav.ask_text("Launch options for %s" % entry.title(), OPTIONS_BODY, text, "For example --fullscreen", "Save", "Cancel", problem)
+		if typed == null:
+			break
+		text = str(typed).strip_edges()
+		if text == _options:
+			break
+		problem = await GameOps.set_launch_options(cave_id, text)
+		if problem == "":
+			_options = text
+			_options_read = true
+			_say("Saved. The game starts with these options, from here and from Steam." if text != "" else "Launch options removed. The game starts with none.")
+			break
+	_busy = false
+	_show_actions()
 
 
 func _on_update() -> void:

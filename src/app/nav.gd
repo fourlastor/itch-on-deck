@@ -22,6 +22,7 @@ const SCREENS := {
 }
 const DialogScene := "res://src/ui/components/confirm_dialog.tscn"
 const ChoiceScene := "res://src/ui/components/choice_dialog.tscn"
+const TextScene := "res://src/ui/components/text_dialog.tscn"
 
 var host: Control
 var overlay: Control
@@ -105,6 +106,14 @@ func ask_quit() -> void:
 func choose(title: String, body: String, options: Array) -> int:
 	var dialog: Control = load(ChoiceScene).instantiate()
 	return await _run_dialog(dialog, func() -> void: dialog.setup(title, body, options))
+
+
+## Asks for one line of text, starting from `text`; returns what was typed,
+## or null when closed with the second answer or B. `problem` says what was
+## wrong with the last try.
+func ask_text(title: String, body: String, text: String, placeholder: String, yes_text: String, no_text: String, problem: String = "") -> Variant:
+	var dialog: Control = load(TextScene).instantiate()
+	return await _run_dialog(dialog, func() -> void: dialog.setup(title, body, text, placeholder, yes_text, no_text, problem))
 
 
 func dialog_open() -> bool:

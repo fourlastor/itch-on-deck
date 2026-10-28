@@ -30,8 +30,8 @@ static func take(host: Node, options: Dictionary) -> void:
 			Nav.top().show_tab(2)
 			await tree.create_timer(0.3).timeout
 			Nav.top().get_node("%Shelf").activated.emit(0)
-		"game", "install", "uninstall", "owned":
-			var list_name := Library.INSTALLED if spec[0] in ["game", "uninstall"] else Library.OWNED
+		"game", "install", "uninstall", "options", "owned":
+			var list_name := Library.INSTALLED if spec[0] in ["game", "uninstall", "options"] else Library.OWNED
 			if list_name == Library.OWNED:
 				await Library.load_owned()
 			var entry: GameEntry = Library.list(list_name)[int(arg) if arg != "" else 0]
@@ -42,6 +42,9 @@ static func take(host: Node, options: Dictionary) -> void:
 			elif spec[0] == "uninstall":
 				await tree.create_timer(0.4).timeout
 				screen.ask_uninstall()
+			elif spec[0] == "options":
+				await tree.create_timer(0.4).timeout
+				screen.edit_options()
 		"downloads", "settings", "sign_in", "setup", "running":
 			var pushed := Nav.push(spec[0], {"demo": true})
 			if arg != "" and pushed.has_method("show_section"):

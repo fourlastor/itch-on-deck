@@ -1,7 +1,7 @@
 class_name GameOps
 extends RefCounted
 ## What can be done with one game: read its uploads, plan an install, play,
-## pin, uninstall (SPEC.md sections 3.3-3.5).
+## set its launch options, pin, uninstall (SPEC.md sections 3.3-3.5).
 
 
 ## The uploads that fit this machine and the ones that do not (section 6).
@@ -112,6 +112,51 @@ static func launch_error(res: Dictionary) -> String:
 		19000:
 			return "This game asks for a sandbox, and none is available on this machine."
 	return Butler.error_text(res)
+
+
+## The game's launch options (R15a), typed as in Steam. butler keeps them
+## with the install and applies them to every launch, from the app and from
+## a Steam entry alike. { error, text }
+static func launch_options(cave_id: String) -> Dictionary:
+	var res: Dictionary = await Butler.request("Caves.GetSettings", {"caveId": cave_id})
+	if Butler.failed(res):
+		return {"error": Butler.error_text(res), "text": ""}
+	var settings: Variant = res.result.get("settings", {})
+	return {"error": "", "text": str(settings.get("commandTemplate", "")) if settings is Dictionary else ""}
+
+
+## Saves the launch options; "" removes them. butler replaces the install's
+## settings as a whole, so the ones the app does not show (a sandbox choice,
+## a launch target) are read first and written back unchanged. Returns "" or
+## what is wrong with the text.
+static func set_launch_options(cave_id: String, text: String) -> String:
+	var res: Dictionary = await Butler.request("Caves.GetSettings", {"caveId": cave_id})
+	if Butler.failed(res):
+		return Butler.error_text(res)
+	var settings: Dictionary = res.result.get("settings", {}) if res.result.get("settings") is Dictionary else {}
+	if text == "":
+		settings.erase("commandTemplate")
+	else:
+		settings["commandTemplate"] = text
+	res = await Butler.request("Caves.SetSettings", {"caveId": cave_id, "settings": settings})
+	if Butler.failed(res):
+		return options_problem(Butler.error_text(res))
+	return ""
+
+
+## butler's reasons for refusing launch options, in the app's words.
+static func options_problem(message: String) -> String:
+	if message.contains("Unterminated double-quoted"):
+		return "A double quote (\") is not closed."
+	if message.contains("Unterminated single-quoted"):
+		return "A single quote (') is not closed."
+	if message.contains("Unterminated backslash"):
+		return "The text ends with a backslash."
+	if message.contains("at most one standalone"):
+		return "%command% can be there only once."
+	if message.contains("wrapper executable cannot be empty"):
+		return "The program before %command% is empty."
+	return message.trim_prefix("settings.commandTemplate: ")
 
 
 ## A file name for an upload, the way the page shows it.
