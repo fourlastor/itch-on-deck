@@ -404,6 +404,7 @@ Visual design is a separate step, with mock-ups first. What the screens have to 
 
 | Screen | Holds |
 |---|---|
+| Splash | What the window shows from its first frame until the first screen is ready: the app's shelf and its name. |
 | Sign in | The QR code and the short code, or the field for an API key; Add itch on Deck to Steam. |
 | Lists | Tabs for Installed, Owned, Collections, My projects, Search. A grid or a list of covers and titles, each with its state (installed, update known, not installable here, draft). |
 | Game | Cover, title, short text, uploads, size, install location; Install, Play, Launch options, Add to Steam (then In Steam, with Remove from Steam), Check for updates, Pin this version, Uninstall. A notice about the last action takes the short text's place while it is shown. |
@@ -796,16 +797,37 @@ user's request ("being able to add launch options (ie a game with `--fullscreen`
 - **On the game screen** the row comes after Play and shows the options, or "None". A dialog
   takes the text: typing starts at once, with Steam's keyboard in Gaming Mode; Enter, or A
   while typing, saves; B stops typing, and a second B closes the dialog. Pressed through with
-  a controller (`--pad=`) in demo mode, not yet on the Deck. Godot 4.7's `unedit()` does not
-  send `editing_toggled`, so whatever stops the typing redraws the hints itself.
+  a controller (`--pad=`) in demo mode. Godot 4.7's `unedit()` does not send `editing_toggled`,
+  so whatever stops the typing redraws the hints itself.
+- **Confirmed on the Deck (2026-10-28):** the user tried the options there and reported that
+  they work.
+
+### Splash
+
+2026-10-31, on a Linux PC, at the user's request ("could you add a splashscreen for itch on
+deck?").
+
+- **Two parts that look like one.** The engine shows a picture while it starts, before any scene
+  can run, and that picture has to be a file: `assets/splash.png`, drawn from
+  `src/ui/artwork/splash.tscn` by `--art` and copied there by hand when the scene changes. The
+  same scene then lies over the app until the first screen is in place, whichever that is (the
+  lists, the sign-in, the fetching of butler), and fades out in a quarter of a second. Before,
+  the window showed Godot's logo and then nothing while butler started and the lists loaded.
+- **It leads into the lists.** The coral card is where the lists' first cover is, at its size,
+  and the name is where a game's title is.
+- **Seen in a recording of the exported build**, at 30 frames a second in a virtual display: the
+  picture from the window's first frame, no Godot logo, no empty frame, then the fade. A real
+  start with butler reached the fade half a second after the window opened. Between the
+  engine's picture and the scene only the edges of shapes and letters change, by less than 1 %.
+  The controller works straight after the fade, and a machine with no sign-in gets the same
+  fade into the sign-in screen.
 
 ### Still to verify
 
 - On a Deck: the controller after the changes above, Steam's on-screen keyboard, Steam's
   browser for the sign-in, adding a game to Steam, and whether a new entry and its images show
   without restarting Steam. (The app's own entry does show its images on the Deck now.)
-- Launch options on a Deck: typing them with Steam's keyboard, and a game started from its
-  Steam entry getting them.
+- The splash on a Deck, where starting takes longer than on the PC.
 - Whether an entry *added* to `shortcuts.vdf` while Steam runs is still there after Steam exits.
   The app does not add that way, so this only matters if way 1 of section 7 fails on a Deck.
 - The app's own update with an account that does not own the page.

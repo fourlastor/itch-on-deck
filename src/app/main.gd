@@ -7,12 +7,16 @@ extends Control
 ##     --demo                 invented games instead of the butler daemon
 ##     --shot=<file.png>      save a picture of the window and quit
 ##     --screen=<name>        which screen to show for the picture
-##     --art=<folder>         save the app's Steam library images there and quit
+##     --art=<folder>         save the app's Steam images, its page's pictures
+##                            and its splash there and quit
+
+const SPLASH_FADE := 0.25
 
 
 func _ready() -> void:
 	Nav.host = %Screens
 	Nav.overlay = %Overlay
+	%Screens.child_entered_tree.connect(_hide_splash, CONNECT_ONE_SHOT)
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0 and Cli.is_command(args[0]):
 		var code: int = await Cli.run(args, self)
@@ -32,6 +36,16 @@ func _ready() -> void:
 		get_tree().quit()
 	elif options.has("shot"):
 		await Shots.take(self, options)
+
+
+## The first screen takes over from the splash. The window has shown that
+## picture since the engine started (assets/splash.png is drawn from the same
+## scene), so nothing jumps while butler and the lists come up.
+func _hide_splash(_screen: Node) -> void:
+	var splash: Control = %Splash
+	var fade := create_tween()
+	fade.tween_property(splash, "modulate:a", 0.0, SPLASH_FADE)
+	fade.tween_callback(splash.queue_free)
 
 
 func _start() -> void:

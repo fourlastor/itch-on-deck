@@ -14,6 +14,8 @@ config/name="itch on Deck"
 config/description="Install, play and update itch.io games on a Steam Deck."
 run/main_scene="res://src/app/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0.101961, 0.0941176, 0.0862745, 1)
+boot_splash/image="res://assets/splash.png"
 run/low_processor_mode=true
 config/icon="res://assets/icon.svg"
 

@@ -22,6 +22,11 @@ const PAGE := {
 	"banner": Vector2i(1920, 400),
 }
 
+## The picture the engine shows while it starts, before any scene can be. It
+## has to be a file in the project: --art draws it, and after a change to its
+## scene it is copied by hand to assets/splash.png.
+const SPLASH := Vector2i(1280, 800)
+
 
 ## Draws them all: the ending of the file name, then the picture. `host` is
 ## any node of the running app. Empty when there is no window to draw with.
@@ -83,3 +88,7 @@ static func save_all(host: Node, folder: String) -> void:
 		image.convert(Image.FORMAT_RGB8)
 		var path := folder.path_join("page_%s.png" % name)
 		print("art ", path, " ", image.get_size(), " ", error_string(image.save_png(path)))
+	var splash := await _draw(host, "splash", SPLASH)
+	splash.convert(Image.FORMAT_RGB8)
+	var splash_path := folder.path_join("splash.png")
+	print("art ", splash_path, " ", splash.get_size(), " ", error_string(splash.save_png(splash_path)))

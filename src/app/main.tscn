@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/app/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://src/ui/artwork/splash.tscn" id="2_splash"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -29,3 +30,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="Splash" parent="." instance=ExtResource("2_splash")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
